@@ -171,7 +171,7 @@
       return '<tr><td>' + esc(it.name) + (it.supplier ? '<div class="muted small">' + esc(it.supplier) + '</div>' : '') +
         '</td><td>' + esc(it.category) + '</td><td>' + esc(it.unit) +
         '</td><td class="num muted">' + bought +
-        '</td><td class="num">' + unitMoney(it.cost) + '</td><td class="row-actions">' +
+        '</td><td class="num">' + unitMoney(it.cost) + ' <span class="muted">/ ' + esc(it.unit) + '</span></td><td class="row-actions">' +
         '<button data-edit="' + it.id + '">Edit</button>' +
         '<button data-del="' + it.id + '" class="danger">Burahin</button></td></tr>';
     }).join('');
@@ -199,9 +199,6 @@
 
   function isRoll(it) { return it.rollWidth > 0 && it.rollLength > 0; }
 
-  // Roll items are priced per sq in when their unit says so, otherwise per sq ft.
-  function rollAreaUnit(unit) { return /in/i.test(unit || '') ? 'sqin' : 'sqft'; }
-
   // Reads the pack/roll fields. Returns how the cost per unit is derived from
   // them, or null when the cost per unit is typed in directly.
   function boughtAs() {
@@ -210,13 +207,13 @@
     if (!(price > 0)) return null;
     var w = parseFloat(f.rollWidth.value), l = parseFloat(f.rollLength.value);
     if (w > 0 && l > 0) {
-      var areaUnit = rollAreaUnit(f.unit.value);
-      var area = Costing.rollArea(w, f.rollWidthUnit.value, l, f.rollLengthUnit.value, areaUnit);
+      // Rolls (vinyl, tarpaulin) are always costed per sq ft.
+      var area = Costing.rollArea(w, f.rollWidthUnit.value, l, f.rollLengthUnit.value, 'sqft');
       return {
         cost: price / area,
         fields: { packPrice: price, packQty: 0, rollWidth: w, rollWidthUnit: f.rollWidthUnit.value, rollLength: l, rollLengthUnit: f.rollLengthUnit.value },
         note: fmt(w) + ' ' + f.rollWidthUnit.value + ' × ' + fmt(l) + ' ' + f.rollLengthUnit.value + ' = ' +
-          fmt(area) + (areaUnit === 'sqin' ? ' sq in' : ' sq ft') + ' → ' + peso.format(price) + ' ÷ ' + fmt(area) + ' = '
+          fmt(area) + ' sq ft → ' + peso.format(price) + ' ÷ ' + fmt(area) + ' = '
       };
     }
     var qty = parseFloat(f.packQty.value);
@@ -232,10 +229,10 @@
 
   function updatePackCost() {
     var f = itemForm;
-    // A roll is costed by area, so default its unit to sq ft.
-    if (parseFloat(f.rollWidth.value) > 0 && parseFloat(f.rollLength.value) > 0 && !/sq|ft|in/i.test(f.unit.value)) {
-      f.unit.value = 'sq ft';
-    }
+    // A roll is costed per sq ft, so its unit is fixed to sq ft.
+    var roll = parseFloat(f.rollWidth.value) > 0 && parseFloat(f.rollLength.value) > 0;
+    if (roll) f.unit.value = 'sq ft';
+    f.unit.readOnly = roll;
     var b = boughtAs();
     f.cost.readOnly = b !== null;
     if (b) f.cost.value = Math.round(b.cost * 10000) / 10000;
