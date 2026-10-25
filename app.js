@@ -529,14 +529,18 @@
     var out = [
       ['Price for ' + pcs(o.qty), peso.format(o.regularPrice) + ' per piece' + note]
     ];
+    if (o.floorApplied) {
+      var tiersF = Costing.sortedTiers(product), fromQty = 0, fromPrice = 0;
+      for (var k = 1; k < tiersF.length && tiersF[k].minQty <= o.qty; k++) {
+        if ((tiersF[k].minQty - 1) * tiersF[k - 1].price === o.floor) { fromQty = tiersF[k].minQty - 1; fromPrice = tiersF[k - 1].price; }
+      }
+      out.push(['Not less than ' + pcs(fromQty) + ' (' + pcs(fromQty) + ' × ' + peso.format(fromPrice) + ')', peso.format(o.floor) +
+        ' (' + unitMoney(Math.round(o.floor / o.qty * 100) / 100) + ' per piece)']);
+    }
     if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' per piece)', '−' + peso.format(o.discount), 'discount']);
     if (o.discount < 0) out.push(['Surcharge (' + peso.format(o.price) + ' per piece)', '+' + peso.format(-o.discount)]);
-    if (o.addOnPrice > 0) {
-      out.push([(product.addOnName || 'Add-on') + ' (' + pcs(o.qty) + ' × ' + peso.format(o.addOnPrice) + ')', '+' + peso.format(o.addOnTotal)]);
-      out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price + o.addOnPrice) + ')', peso.format(o.total), 'total']);
-    } else {
-      out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price) + ')', peso.format(o.total), 'total']);
-    }
+    if (o.addOnPrice > 0) out.push([(product.addOnName || 'Add-on') + ' (' + pcs(o.qty) + ' × ' + peso.format(o.addOnPrice) + ')', '+' + peso.format(o.addOnTotal)]);
+    out.push([o.floorApplied ? 'Total (' + pcs(o.qty) + ')' : 'Total (' + pcs(o.qty) + ' × ' + peso.format(o.price + o.addOnPrice) + ')', peso.format(o.total), 'total']);
     if (o.unitCost > 0) {
       out.push(['Cost', peso.format(o.cost)]);
       out.push(['Profit', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
@@ -692,7 +696,7 @@
         ? (p.size ? 'Size: ' + p.size + '. ' : '') + 'Set to: ' + tierSummary(p) + '. Change it in Settings.'
         : p.name + ' has no price yet. Set it in Settings first.';
       $('#calc-total').innerHTML = rowsHtml(tierOrderRows(p, {
-        qty: qty, price: $('#calc-rate').value, addOn: hasAddOn && $('#calc-addon').checked
+        qty: qty, price: calcRateTouched ? $('#calc-rate').value : '', addOn: hasAddOn && $('#calc-addon').checked
       }));
       return;
     }
@@ -904,18 +908,19 @@
     }).join('');
   }
 
-  // Warn when the last piece of a tier costs more in total than the first of the next.
+  // Explain where a bigger order is held at the total of a smaller one (no price drop).
   function tierWarning(p) {
     var tiers = Costing.sortedTiers(p);
-    var bad = [];
+    var notes = [];
     for (var i = 1; i < tiers.length; i++) {
-      var q = tiers[i].minQty;
-      if ((q - 1) * tiers[i - 1].price > q * tiers[i].price) {
-        bad.push((q - 1) + ' pcs (' + peso.format((q - 1) * tiers[i - 1].price) + ') costs more than ' +
-          q + ' pcs (' + peso.format(q * tiers[i].price) + ')');
+      var q = tiers[i].minQty, floor = (q - 1) * tiers[i - 1].price;
+      if (floor > q * tiers[i].price && tiers[i].price > 0) {
+        var full = Math.ceil(floor / tiers[i].price - 1e-9);
+        notes.push(q + '+ pcs never cost less than ' + (q - 1) + ' pcs (' + peso.format(floor) + '), so ' +
+          peso.format(tiers[i].price) + ' per piece fully applies from ' + full + ' pcs');
       }
     }
-    return bad.length ? '<p class="warn">Note: ' + bad.join('; ') + '.</p>' : '';
+    return notes.length ? '<p class="muted small">So a bigger order never costs less: ' + notes.join('; ') + '.</p>' : '';
   }
 
   function readPriceConfig() {

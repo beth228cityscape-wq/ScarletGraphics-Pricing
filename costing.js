@@ -118,19 +118,35 @@
     return Math.round(start - (start - bulk) * (Math.max(1, qty) - 1) / (bulkQty - 1));
   }
 
+  // Lowest total for qty pcs so that ordering more never costs less: the
+  // total of the last piece count of each lower tier (e.g. 9 pcs at ₱30 = ₱270
+  // is the least 10+ pcs can cost).
+  function tierFloor(product, qty) {
+    var tiers = sortedTiers(product), floor = 0;
+    for (var i = 1; i < tiers.length && tiers[i].minQty <= qty; i++) {
+      floor = Math.max(floor, (tiers[i].minQty - 1) * tiers[i - 1].price);
+    }
+    return floor;
+  }
+
   // Price an order of a product whose price per piece depends on quantity
-  // (e.g. mugs: 1-12 pcs ₱150, 13-24 ₱100, 25+ ₱80). order: { qty, price };
-  // order.price overrides the tier price (for discounts) when given.
+  // (e.g. pins: 1-9 pcs ₱30, 10-49 ₱24, 50+ ₱18). order: { qty, price, addOn };
+  // order.price overrides the tier price (for discounts) when given. Without
+  // an override the total is never below what fewer pieces would cost.
   function computeTierOrder(product, items, order) {
     order = order || {};
     var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
     var scale = product.pricing === 'scale';
     var tier = scale ? null : tierFor(product, qty);
     var regular = scale ? scalePrice(product, qty) : tier ? tier.price : 0;
-    var price = order.price == null || order.price === '' ? regular : num(order.price);
+    var overridden = !(order.price == null || order.price === '');
+    var price = overridden ? num(order.price) : regular;
+    var floor = scale ? 0 : tierFloor(product, qty);
+    var regularTotal = Math.max(regular * qty, floor);
+    var itemsTotal = overridden ? price * qty : regularTotal;
     // Optional per-piece add-on (e.g. packaging), never discounted.
     var addOn = order.addOn ? num(product.addOnPrice) : 0;
-    var total = (price + addOn) * qty;
+    var total = itemsTotal + addOn * qty;
     var unitCost = computeProduct(product, items).totalCost;
     var cost = unitCost * qty;
     return {
@@ -139,10 +155,13 @@
       hasPrice: scale ? num(product.startPrice) > 0 || num(product.bulkPrice) > 0 : !!tier,
       regularPrice: regular,
       price: price,
+      floor: floor,
+      floorApplied: !overridden && floor > regular * qty,
+      itemsTotal: round2(itemsTotal),
       addOnPrice: addOn,
       addOnTotal: round2(addOn * qty),
       total: round2(total),
-      discount: round2((regular - price) * qty),
+      discount: round2(regularTotal - itemsTotal),
       unitCost: unitCost,
       cost: round2(cost),
       profit: round2(total - cost),

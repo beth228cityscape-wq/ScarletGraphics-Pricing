@@ -89,9 +89,10 @@ const mug = { pricing: 'tier', tiers: [{ minQty: 25, price: 80 }, { minQty: 1, p
 test('tier pricing picks the price for the quantity', () => {
   assert.strictEqual(computeTierOrder(mug, items, { qty: 1 }).total, 150);
   assert.strictEqual(computeTierOrder(mug, items, { qty: 12 }).total, 1800);
-  assert.strictEqual(computeTierOrder(mug, items, { qty: 13 }).total, 1300);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 13 }).total, 1800); // never below 12 pcs
   assert.strictEqual(computeTierOrder(mug, items, { qty: 24 }).price, 100);
-  assert.strictEqual(computeTierOrder(mug, items, { qty: 25 }).total, 2000);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 25 }).total, 2400); // never below 24 pcs
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 40 }).total, 3200);
   assert.strictEqual(computeTierOrder(mug, items, { qty: 100 }).price, 80);
 });
 
@@ -247,8 +248,17 @@ const pins = { pricing: 'tier', addOnName: 'Packaging', addOnPrice: 5, tiers: [{
 
 test('button pins: price by quantity, packaging adds ₱5 per piece', () => {
   assert.strictEqual(computeTierOrder(pins, [], { qty: 9 }).total, 270);
-  assert.strictEqual(computeTierOrder(pins, [], { qty: 10 }).total, 240);
-  assert.strictEqual(computeTierOrder(pins, [], { qty: 50 }).total, 900);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 10 }).total, 270);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 10 }).floorApplied, true);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 12 }).total, 288);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 50 }).total, 1176);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 66 }).total, 1188);
+  let prev = 0;
+  for (let q = 1; q <= 120; q++) {
+    const t = computeTierOrder(pins, [], { qty: q }).total;
+    assert.ok(t >= prev, q + ' pcs');
+    prev = t;
+  }
   const r = computeTierOrder(pins, [], { qty: 20, addOn: true });
   assert.strictEqual(r.total, 580);
   assert.strictEqual(r.addOnTotal, 100);
