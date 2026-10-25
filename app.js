@@ -15,7 +15,7 @@
     ] },
     { id: 'mug', name: 'Mug', pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 },
     { id: 'sintra', name: 'Sintra Board', pricing: 'areaTiers', minPrice: 200, areaTiers: [
-      { minArea: 0, rate: 1.8 }, { minArea: 386.1, rate: 1.5 }
+      { minArea: 0, rate: 1.8 }, { minArea: 386.1, rate: 1.5 }, { minArea: 864, rate: 1.2 }, { minArea: 1297, rate: 1 }
     ] },
     { id: 'business-cards', name: 'Business Cards', pricing: 'variants', packSize: 100, variants: [
       { name: 'Single Face', price: 350 }, { name: 'Double Face', price: 450 },
@@ -75,6 +75,13 @@
       if (p.id === 'mug' && p.pricing === 'tier' &&
           JSON.stringify(p.tiers) === '[{"minQty":1,"price":150},{"minQty":13,"price":100},{"minQty":25,"price":80}]') {
         Object.assign(p, { pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 });
+      }
+    });
+    // Sintra first had only the A2 break; big boards now get ₱1.20 and ₱1.00 brackets.
+    st.products.forEach(function (p) {
+      if (p.id === 'sintra' && p.pricing === 'areaTiers' &&
+          JSON.stringify(p.areaTiers) === '[{"minArea":0,"rate":1.8},{"minArea":386.1,"rate":1.5}]') {
+        p.areaTiers = JSON.parse(JSON.stringify(BUILTINS.find(function (x) { return x.id === 'sintra'; }).areaTiers));
       }
     });
     BUILTINS.forEach(function (b) {
