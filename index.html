@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,12 +25,12 @@
         <div id="calc-categories" class="chips" role="tablist"></div>
         <p class="muted" id="calc-note"></p>
         <div class="qty-calc">
-          <label><span>Lapad (<span class="calc-dim">ft</span>)</span><input id="calc-width" type="number" step="any" min="0"></label>
-          <label><span>Haba (<span class="calc-dim">ft</span>)</span><input id="calc-height" type="number" step="any" min="0"></label>
-          <label>Ilang piraso?<input id="calc-qty" type="number" min="1" value="1"></label>
-          <label><span><span id="calc-rate-label">Presyo per sq ft</span> (₱)</span><input id="calc-rate" type="number" step="0.01" min="0"></label>
+          <label><span>Width (<span class="calc-dim">ft</span>)</span><input id="calc-width" type="number" step="any" min="0"></label>
+          <label><span>Height (<span class="calc-dim">ft</span>)</span><input id="calc-height" type="number" step="any" min="0"></label>
+          <label>Quantity (pcs)<input id="calc-qty" type="number" min="1" value="1"></label>
+          <label><span><span id="calc-rate-label">Price per sq ft</span> (₱)</span><input id="calc-rate" type="number" step="0.01" min="0"></label>
         </div>
-        <p class="muted small">Palitan lang ang presyo dito kung may discount. Hindi nito binabago ang naka-set sa Settings.</p>
+        <p class="muted small">Change the price here to give a discount. This does not change the price saved in Settings.</p>
         <div id="calc-total" class="order-total"></div>
       </div>
     </section>
@@ -38,24 +38,24 @@
     <!-- ITEMS -->
     <section id="tab-items" class="tab">
       <form id="item-form" class="card">
-        <h2 id="item-form-title">Bagong item</h2>
+        <h2 id="item-form-title">New item</h2>
         <input type="hidden" name="id">
         <div class="grid">
-          <label>Pangalan<input name="name" required placeholder="hal. Sticker paper A4"></label>
-          <label>Category<input name="category" placeholder="hal. Paper, Ink, Vinyl" list="category-list"></label>
-          <label><span>Supplier <small>optional</small></span><input name="supplier" placeholder="hal. Adcon" list="supplier-list"></label>
+          <label>Name<input name="name" required placeholder="e.g. Sticker paper A4"></label>
+          <label>Category<input name="category" placeholder="e.g. Paper, Ink, Vinyl" list="category-list"></label>
+          <label><span>Supplier <small>optional</small></span><input name="supplier" placeholder="e.g. Adcon" list="supplier-list"></label>
           <label>Unit<input name="unit" required placeholder="pc, sheet, sq ft, ml"></label>
         </div>
 
-        <h3>Kung naka-pack o naka-roll <small class="muted">(optional)</small></h3>
+        <h3>If bought by the pack or roll <small class="muted">(optional)</small></h3>
         <div class="grid">
-          <label>Presyo ng pack / roll (₱)<input name="packPrice" type="number" step="0.01" min="0" placeholder="hal. 167 o 3600"></label>
-          <label>Ilan sa isang pack<input name="packQty" type="number" step="any" min="0" placeholder="hal. 50 pcs"></label>
-          <label>Lapad ng roll
-            <span class="with-unit"><input name="rollWidth" type="number" step="any" min="0" placeholder="hal. 4.5"><select name="rollWidthUnit" aria-label="Unit ng lapad"><option>ft</option><option>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
+          <label>Pack / roll price (₱)<input name="packPrice" type="number" step="0.01" min="0" placeholder="e.g. 167 or 3600"></label>
+          <label>Pieces per pack<input name="packQty" type="number" step="any" min="0" placeholder="e.g. 50 pcs"></label>
+          <label>Roll width
+            <span class="with-unit"><input name="rollWidth" type="number" step="any" min="0" placeholder="e.g. 4.5"><select name="rollWidthUnit" aria-label="Width unit"><option>ft</option><option>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
           </label>
-          <label>Haba ng roll
-            <span class="with-unit"><input name="rollLength" type="number" step="any" min="0" placeholder="hal. 50"><select name="rollLengthUnit" aria-label="Unit ng haba"><option>ft</option><option selected>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
+          <label>Roll length
+            <span class="with-unit"><input name="rollLength" type="number" step="any" min="0" placeholder="e.g. 50"><select name="rollLengthUnit" aria-label="Length unit"><option>ft</option><option selected>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
           </label>
         </div>
         <div class="grid">
@@ -63,7 +63,7 @@
         </div>
         <p id="pack-note" class="muted small"></p>
         <div class="actions">
-          <button type="submit" class="primary">I-save</button>
+          <button type="submit" class="primary">Save</button>
           <button type="button" id="item-cancel" hidden>Cancel</button>
         </div>
       </form>
@@ -72,14 +72,14 @@
 
       <div class="card">
         <div class="toolbar">
-          <h2>Listahan ng items</h2>
-          <input id="item-search" type="search" placeholder="Hanapin...">
+          <h2>Item list</h2>
+          <input id="item-search" type="search" placeholder="Search...">
         </div>
         <table>
-          <thead><tr><th>Pangalan</th><th>Category</th><th>Unit</th><th class="num">Pack / Roll</th><th class="num">Cost</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th class="num">Pack / Roll</th><th class="num">Cost</th><th></th></tr></thead>
           <tbody id="item-rows"></tbody>
         </table>
-        <p id="item-empty" class="empty">Wala pang items. Magdagdag sa taas.</p>
+        <p id="item-empty" class="empty">No items yet. Add one above.</p>
       </div>
     </section>
 
@@ -89,60 +89,60 @@
         <div class="card">
           <div class="toolbar">
             <h2>Products</h2>
-            <button id="product-new" class="primary">+ Bagong product</button>
+            <button id="product-new" class="primary">+ New product</button>
           </div>
           <ul id="product-list" class="list"></ul>
-          <p id="product-empty" class="empty">Wala pang products.</p>
+          <p id="product-empty" class="empty">No products yet.</p>
         </div>
 
         <form id="product-form" class="card" hidden>
           <h2 id="product-form-title">Product</h2>
           <input type="hidden" name="id">
           <div class="grid">
-            <label>Pangalan<input name="name" required placeholder="hal. Tarpaulin"></label>
-            <label>Paano i-presyo?
+            <label>Name<input name="name" required placeholder="e.g. Tarpaulin"></label>
+            <label>Pricing
               <select name="pricing">
-                <option value="unit">Per piraso (puhunan + markup)</option>
-                <option value="sqft">Per sq ft (hal. tarpaulin)</option>
-                <option value="sqin">Per sq inch (hal. sticker)</option>
-                <option value="tier">Per piraso, depende sa dami (tiers)</option>
-                <option value="scale">Per piraso, pababa ang presyo (hal. mug)</option>
+                <option value="unit">Per piece (cost + markup)</option>
+                <option value="sqft">Per sq ft (e.g. tarpaulin)</option>
+                <option value="sqin">Per sq inch (e.g. sticker)</option>
+                <option value="tier">Per piece, by quantity (tiers)</option>
+                <option value="scale">Per piece, sliding price (e.g. mug)</option>
               </select>
             </label>
           </div>
 
-          <h3>Materials na gagamitin <span class="area-only muted">(per 1 <span class="area-word">sq ft</span>)</span></h3>
+          <h3>Materials used <span class="area-only muted">(per 1 <span class="area-word">sq ft</span>)</span></h3>
           <table>
             <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Cost</th><th class="num">Total</th><th></th></tr></thead>
             <tbody id="component-rows"></tbody>
           </table>
-          <button type="button" id="component-add">+ Magdagdag ng material</button>
+          <button type="button" id="component-add">+ Add material</button>
 
-          <h3>Iba pang gastos at tubo</h3>
+          <h3>Other costs and profit</h3>
           <div class="grid">
-            <label>Waste / sira (%)<input name="wastePct" type="number" step="0.01" min="0" value="0"></label>
-            <label><span>Labor (₱ per <span class="unit-word">piraso</span>)</span><input name="labor" type="number" step="0.01" min="0" value="0"></label>
+            <label>Waste (%)<input name="wastePct" type="number" step="0.01" min="0" value="0"></label>
+            <label><span>Labor (₱ per <span class="unit-word">piece</span>)</span><input name="labor" type="number" step="0.01" min="0" value="0"></label>
             <label>Overhead (%)<input name="overheadPct" type="number" step="0.01" min="0" value="0"></label>
             <label class="unit-only">Markup (%)<input name="markupPct" type="number" step="0.01" min="0" value="0"></label>
-            <label class="area-only"><span>Presyo per <span class="area-word">sq ft</span> (₱)</span><input name="ratePerSqft" type="number" step="0.01" min="0" value="0"></label>
-            <label class="area-only">Minimum na presyo kada piraso (₱)<input name="minPrice" type="number" step="0.01" min="0" value="0"></label>
+            <label class="area-only"><span>Price per <span class="area-word">sq ft</span> (₱)</span><input name="ratePerSqft" type="number" step="0.01" min="0" value="0"></label>
+            <label class="area-only">Minimum price per piece (₱)<input name="minPrice" type="number" step="0.01" min="0" value="0"></label>
           </div>
 
           <div id="breakdown" class="breakdown"></div>
 
-          <h3>Compute ng order</h3>
+          <h3>Order calculator</h3>
           <div class="qty-calc">
-            <label class="area-only"><span>Lapad (<span class="dim-word">ft</span>)</span><input id="order-width" type="number" step="any" min="0" value="4"></label>
-            <label class="area-only"><span>Haba (<span class="dim-word">ft</span>)</span><input id="order-height" type="number" step="any" min="0" value="4"></label>
-            <label class="area-only"><span>Presyo per <span class="area-word">sq ft</span> (₱)</span><input id="order-rate" type="number" step="0.01" min="0"></label>
-            <label>Ilang piraso?<input id="order-qty" type="number" min="1" value="1"></label>
+            <label class="area-only"><span>Width (<span class="dim-word">ft</span>)</span><input id="order-width" type="number" step="any" min="0" value="4"></label>
+            <label class="area-only"><span>Height (<span class="dim-word">ft</span>)</span><input id="order-height" type="number" step="any" min="0" value="4"></label>
+            <label class="area-only"><span>Price per <span class="area-word">sq ft</span> (₱)</span><input id="order-rate" type="number" step="0.01" min="0"></label>
+            <label>Quantity (pcs)<input id="order-qty" type="number" min="1" value="1"></label>
           </div>
           <div id="order-total" class="order-total"></div>
 
           <div class="actions">
-            <button type="submit" class="primary">I-save ang product</button>
+            <button type="submit" class="primary">Save product</button>
             <button type="button" id="product-duplicate">Duplicate</button>
-            <button type="button" id="product-delete" class="danger">Burahin</button>
+            <button type="button" id="product-delete" class="danger">Delete</button>
           </div>
         </form>
       </div>
@@ -151,36 +151,36 @@
     <!-- SETTINGS / BACKUP -->
     <section id="tab-settings" class="tab">
       <form id="price-config" class="card">
-        <h2>Presyo ng bawat category</h2>
-        <p class="muted small">Ito ang ginagamit ng Price Calculator.</p>
+        <h2>Category prices</h2>
+        <p class="muted small">These are the prices the Price Calculator uses.</p>
         <table>
-          <thead><tr><th>Category</th><th>Sukat</th><th class="num">Presyo</th><th class="num">Minimum / piraso</th><th></th></tr></thead>
+          <thead><tr><th>Category</th><th>Pricing</th><th class="num">Price</th><th class="num">Minimum / piece</th><th></th></tr></thead>
           <tbody id="price-config-rows"></tbody>
         </table>
         <div class="actions">
-          <button type="submit" class="primary">I-save ang mga presyo</button>
-          <button type="button" id="category-add">+ Bagong category</button>
+          <button type="submit" class="primary">Save prices</button>
+          <button type="button" id="category-add">+ New category</button>
         </div>
         <p id="price-config-msg" class="msg"></p>
 
-        <h3>Mag-import ng categories mula sa Excel / Google Sheets</h3>
-        <p class="muted small">Columns: <code>Category, Sukat (sq ft, sq in o pcs), Presyo, Minimum</code>. Para sa presyong depende sa dami, ilagay ang <code>pcs</code> sa Sukat at ganito sa Presyo: <code>1-12:150; 13-24:100; 25+:80</code>. I-select ang rows sa Excel, copy, at i-paste dito. Kapag may category nang ganoong pangalan, papalitan lang ang presyo nito.</p>
+        <h3>Import categories from Excel / Google Sheets</h3>
+        <p class="muted small">Columns: <code>Category, Unit (sq ft, sq in or pcs), Price, Minimum</code>. For prices by quantity, put <code>pcs</code> as the unit and the price like this: <code>1-12:150; 13-24:100; 25+:80</code>. Select the rows in Excel, copy, and paste them here. A category with the same name gets its price updated.</p>
         <textarea id="paste-categories" rows="5" placeholder="Tarpaulin	sq ft	25	200&#10;Vinyl sticker decal	sq in	8	50&#10;Mug	pcs	1-12:150; 13-24:100; 25+:80"></textarea>
-        <div class="actions"><button type="button" id="paste-categories-import" class="primary">I-import ang categories</button></div>
+        <div class="actions"><button type="button" id="paste-categories-import" class="primary">Import categories</button></div>
       </form>
 
       <div class="card">
-        <h2>Backup at import</h2>
-        <p>Naka-save ang data sa browser na ito. Mag-export paminsan-minsan para may backup, o para mailipat sa ibang computer.</p>
+        <h2>Backup and import</h2>
+        <p>Your data is saved in this browser. Export now and then to keep a backup, or to move it to another computer.</p>
         <div class="actions">
-          <button id="export-json" class="primary">I-export (JSON)</button>
-          <label class="file-btn">I-import (JSON)<input id="import-json" type="file" accept=".json,application/json" hidden></label>
-          <button id="export-csv">I-export ang costing (CSV)</button>
+          <button id="export-json" class="primary">Export (JSON)</button>
+          <label class="file-btn">Import (JSON)<input id="import-json" type="file" accept=".json,application/json" hidden></label>
+          <button id="export-csv">Export costing (CSV)</button>
         </div>
-        <h3>Mag-import ng items mula sa CSV / Google Sheets</h3>
-        <p>I-paste dito ang columns na <code>Pangalan, Category, Unit, Cost</code> (pwedeng kopyahin direkta mula sa Google Sheets o Excel). Kung naka-pack, idagdag ang ika-5 column na <code>Ilan sa pack</code>; ang Cost ay ituturing na presyo ng buong pack.</p>
+        <h3>Import items from CSV / Google Sheets</h3>
+        <p>Paste columns <code>Name, Category, Unit, Cost</code> here (copied straight from Google Sheets or Excel). For packs, add a 5th column <code>Pieces per pack</code>; the Cost is then the price of the whole pack.</p>
         <textarea id="paste-items" rows="6" placeholder="Sticker paper A4	Paper	sheet	12.50"></textarea>
-        <div class="actions"><button id="paste-import" class="primary">I-import ang items</button></div>
+        <div class="actions"><button id="paste-import" class="primary">Import items</button></div>
         <p id="settings-msg" class="msg"></p>
       </div>
     </section>
@@ -190,8 +190,8 @@
     <div class="dialog card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
       <p id="confirm-msg"></p>
       <div class="actions">
-        <button type="button" id="confirm-yes" class="primary">Oo, burahin</button>
-        <button type="button" id="confirm-no">Hindi</button>
+        <button type="button" id="confirm-yes" class="primary">Yes, delete</button>
+        <button type="button" id="confirm-no">Cancel</button>
       </div>
     </div>
   </div>

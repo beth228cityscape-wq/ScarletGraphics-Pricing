@@ -22,7 +22,7 @@
       var unitCost = item ? num(item.cost) : 0;
       return {
         itemId: c.itemId,
-        name: item ? item.name : '(nawawalang item)',
+        name: item ? item.name : '(missing item)',
         unit: item ? item.unit : '',
         qty: qty,
         unitCost: unitCost,

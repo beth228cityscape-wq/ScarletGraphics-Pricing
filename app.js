@@ -9,8 +9,8 @@
     { id: 'sticker', name: 'Sticker', pricing: 'sqin', ratePerSqft: 0, minPrice: 0 },
     { id: 'mug', name: 'Mug', pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 }
   ];
-  var TIER_LABEL = 'Per piraso (depende sa dami)';
-  var SCALE_LABEL = 'Per piraso (pababa ang presyo)';
+  var TIER_LABEL = 'Per piece (by quantity)';
+  var SCALE_LABEL = 'Per piece (sliding price)';
   var AREA = {
     sqft: { dim: 'ft', area: 'sq ft', label: 'Per sq ft' },
     sqin: { dim: 'in', area: 'sq in', label: 'Per sq inch' }
@@ -87,11 +87,11 @@
 
   function tierSummary(p) {
     if (isScale(p)) {
-      return peso.format(p.startPrice || 0) + ' sa 1 pc, pababa hanggang ' + peso.format(p.bulkPrice || 0) +
-        ' mula ' + (p.bulkQty || 0) + ' pcs';
+      return peso.format(p.startPrice || 0) + ' for 1 pc, sliding down to ' + peso.format(p.bulkPrice || 0) +
+        ' from ' + (p.bulkQty || 0) + ' pcs';
     }
     var tiers = Costing.sortedTiers(p);
-    if (!tiers.length) return 'wala pang presyo';
+    if (!tiers.length) return 'no price yet';
     return tiers.map(function (t, i) {
       return tierRange(tiers, i) + ' pcs: ' + peso.format(t.price);
     }).join(' · ');
@@ -133,7 +133,7 @@
   function askConfirm(message, onYes, yesLabel) {
     var dlg = $('#confirm');
     $('#confirm-msg').textContent = message;
-    $('#confirm-yes').textContent = yesLabel || 'Oo, burahin';
+    $('#confirm-yes').textContent = yesLabel || 'Yes, delete';
     dlg.hidden = false;
     $('#confirm-yes').focus();
     function close(yes) {
@@ -178,7 +178,7 @@
         '</td><td class="num muted">' + bought +
         '</td><td class="num">' + unitMoney(it.cost) + ' <span class="muted">/ ' + esc(it.unit) + '</span></td><td class="row-actions">' +
         '<button data-edit="' + it.id + '">Edit</button>' +
-        '<button data-del="' + it.id + '" class="danger">Burahin</button></td></tr>';
+        '<button data-del="' + it.id + '" class="danger">Delete</button></td></tr>';
     }).join('');
     $('#item-empty').hidden = state.items.length > 0;
 
@@ -198,7 +198,7 @@
     itemForm.reset();
     itemForm.id.value = '';
     updatePackCost();
-    $('#item-form-title').textContent = 'Bagong item';
+    $('#item-form-title').textContent = 'New item';
     $('#item-cancel').hidden = true;
   }
 
@@ -245,7 +245,7 @@
     if (b) f.cost.value = Math.round(b.cost * 10000) / 10000;
     var unit = f.unit.value.trim() || 'unit';
     var c = b ? unitMoney(b.cost) : '';
-    $('#pack-note').textContent = b ? b.note + c + ' kada ' + unit : '';
+    $('#pack-note').textContent = b ? b.note + c + ' per ' + unit : '';
   }
 
   ['packPrice', 'packQty', 'unit', 'rollWidth', 'rollLength', 'rollWidthUnit', 'rollLengthUnit'].forEach(function (k) {
@@ -292,7 +292,7 @@
       itemForm.rollWidthUnit.value = it.rollWidthUnit || 'ft';
       itemForm.rollLengthUnit.value = it.rollLengthUnit || 'm';
       updatePackCost();
-      $('#item-form-title').textContent = 'I-edit ang item';
+      $('#item-form-title').textContent = 'Edit item';
       $('#item-cancel').hidden = false;
       itemForm.scrollIntoView({ behavior: 'smooth' });
     } else if (delId) {
@@ -300,8 +300,8 @@
         return p.components.some(function (c) { return c.itemId === delId; });
       }).map(function (p) { return p.name; });
       var msg = usedIn.length
-        ? 'Ginagamit ito sa: ' + usedIn.join(', ') + '. Burahin pa rin?'
-        : 'Burahin ang item na ito?';
+        ? 'This item is used in: ' + usedIn.join(', ') + '. Delete anyway?'
+        : 'Delete this item?';
       askConfirm(msg, function () {
         state.items = state.items.filter(function (x) { return x.id !== delId; });
         save();
@@ -339,7 +339,7 @@
     productForm.pricing.value = p.pricing || 'unit';
     if (!keepOrder) $('#order-rate').value = p.ratePerSqft || 0;
     applyPricingMode();
-    $('#product-form-title').textContent = p.id ? 'I-edit ang product' : 'Bagong product';
+    $('#product-form-title').textContent = p.id ? 'Edit product' : 'New product';
     $('#product-delete').hidden = !p.id || isBuiltin(p.id);
     $('#product-duplicate').hidden = !p.id;
     renderComponents();
@@ -357,13 +357,13 @@
   function applyPricingMode() {
     var a = AREA[productForm.pricing.value];
     productForm.dataset.pricing = a ? 'area' : /^(tier|scale)$/.test(productForm.pricing.value) ? 'tier' : 'unit';
-    $('.unit-word').textContent = a ? a.area : 'piraso';
+    $('.unit-word').textContent = a ? a.area : 'piece';
     productForm.querySelectorAll('.area-word').forEach(function (el) { el.textContent = a ? a.area : ''; });
     productForm.querySelectorAll('.dim-word').forEach(function (el) { el.textContent = a ? a.dim : ''; });
   }
 
   function itemOptions(selected) {
-    return '<option value="">— pumili —</option>' + sortedItems().map(function (it) {
+    return '<option value="">— choose —</option>' + sortedItems().map(function (it) {
       return '<option value="' + it.id + '"' + (it.id === selected ? ' selected' : '') + '>' +
         esc(it.name) + ' (' + esc(it.unit) + ')</option>';
     }).join('');
@@ -377,7 +377,7 @@
         '<td class="num"><input data-field="qty" type="number" step="any" min="0" value="' + esc(c.qty) + '"></td>' +
         '<td class="num">' + unitMoney(line.unitCost) + '</td>' +
         '<td class="num">' + peso.format(line.total) + '</td>' +
-        '<td><button type="button" data-remove="' + i + '" class="danger" aria-label="Alisin">✕</button></td></tr>';
+        '<td><button type="button" data-remove="' + i + '" class="danger" aria-label="Remove">✕</button></td></tr>';
     }).join('');
     renderBreakdown();
   }
@@ -392,21 +392,21 @@
       ['Waste (' + (editingProduct.wastePct || 0) + '%)', r.waste],
       ['Labor', r.labor],
       ['Overhead (' + (editingProduct.overheadPct || 0) + '%)', r.overhead],
-      ['Total cost (puhunan)' + (sqft ? ' per ' + per : ''), r.totalCost, 'subtotal']
+      ['Total cost' + (sqft ? ' per ' + per : ''), r.totalCost, 'subtotal']
     ];
     var tier = isPiece(editingProduct);
     if (tier) {
-      rows[rows.length - 1][0] = 'Total cost (puhunan) kada piraso';
+      rows[rows.length - 1][0] = 'Total cost per piece';
     } else if (sqft) {
-      rows.push(['Presyo per ' + per, editingProduct.ratePerSqft || 0, 'total']);
-      if (editingProduct.minPrice) rows.push(['Minimum kada piraso', editingProduct.minPrice]);
+      rows.push(['Price per ' + per, editingProduct.ratePerSqft || 0, 'total']);
+      if (editingProduct.minPrice) rows.push(['Minimum per piece', editingProduct.minPrice]);
     } else {
       rows.push(['Markup (' + (editingProduct.markupPct || 0) + '%)', r.markup]);
       rows.push(['Selling price', r.price, 'total']);
     }
     $('#breakdown').innerHTML = rows.map(function (row) {
       return '<div class="' + (row[2] || '') + '"><span>' + row[0] + '</span><span>' + peso.format(row[1]) + '</span></div>';
-    }).join('') + (tier ? '<p class="muted">Presyo: ' + tierSummary(editingProduct) + '. Pinapalitan sa Settings.</p>' : sqft ? '' : '<p class="muted">Tubo: ' + peso.format(r.profit) + ' kada piraso · Margin ' + r.marginPct + '%</p>');
+    }).join('') + (tier ? '<p class="muted">Price: ' + tierSummary(editingProduct) + '. Change it in Settings.</p>' : sqft ? '' : '<p class="muted">Profit: ' + peso.format(r.profit) + ' per piece · Margin ' + r.marginPct + '%</p>');
 
     // Keep the cost and total cells in the component table in sync without re-rendering inputs.
     document.querySelectorAll('#component-rows tr').forEach(function (tr, i) {
@@ -428,9 +428,9 @@
       });
     } else {
       out = [
-        ['Total (' + qty + ' pcs)', peso.format(r.price * qty), 'total'],
-        ['Puhunan', peso.format(r.totalCost * qty)],
-        ['Tubo', peso.format(r.profit * qty)]
+        ['Total (' + pcs(qty) + ')', peso.format(r.price * qty), 'total'],
+        ['Cost', peso.format(r.totalCost * qty)],
+        ['Profit', peso.format(r.profit * qty)]
       ];
     }
     $('#order-total').innerHTML = rowsHtml(out);
@@ -440,41 +440,41 @@
     var o = Costing.computeSqftOrder(product, state.items, order);
     var a = AREA[product.pricing];
     var out = [
-      ['Sukat', fmt(order.width) + ' × ' + fmt(order.height) + ' ' + a.dim + ' = ' + fmt(o.area) + ' ' + a.area],
-      ['Kada piraso', fmt(o.area) + ' ' + a.area + ' × ' + peso.format(o.rate) + ' = ' + peso.format(o.computedPerPiece)]
+      ['Size', fmt(order.width) + ' × ' + fmt(order.height) + ' ' + a.dim + ' = ' + fmt(o.area) + ' ' + a.area],
+      ['Per piece', fmt(o.area) + ' ' + a.area + ' × ' + peso.format(o.rate) + ' = ' + peso.format(o.computedPerPiece)]
     ];
-    if (o.minApplied) out.push(['Minimum na presyo (mas mababa sa ' + peso.format(o.minPrice) + ')', peso.format(o.pricePerPiece) + ' kada piraso', 'minimum']);
-    if (o.discount > 0) out.push(['Discount (mula ' + peso.format(o.baseRate) + '/' + a.area + ')', '−' + peso.format(o.discount), 'discount']);
-    if (o.discount < 0) out.push(['Dagdag (mula ' + peso.format(o.baseRate) + '/' + a.area + ')', '+' + peso.format(-o.discount)]);
-    out.push(['Total (' + order.qty + ' pcs)', peso.format(o.total), 'total']);
+    if (o.minApplied) out.push(['Minimum price (below ' + peso.format(o.minPrice) + ')', peso.format(o.pricePerPiece) + ' per piece', 'minimum']);
+    if (o.discount > 0) out.push(['Discount (from ' + peso.format(o.baseRate) + '/' + a.area + ')', '−' + peso.format(o.discount), 'discount']);
+    if (o.discount < 0) out.push(['Surcharge (from ' + peso.format(o.baseRate) + '/' + a.area + ')', '+' + peso.format(-o.discount)]);
+    out.push(['Total (' + pcs(order.qty) + ')', peso.format(o.total), 'total']);
     // Cost and profit only mean something once per-sq-ft materials or labor are filled in.
     if (o.costPerSqft > 0) {
-      out.push(['Puhunan', peso.format(o.cost)]);
-      out.push(['Tubo', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
+      out.push(['Cost', peso.format(o.cost)]);
+      out.push(['Profit', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
     }
     return out;
   }
 
   function tierOrderRows(product, order) {
     var o = Costing.computeTierOrder(product, state.items, order);
-    if (!o.hasPrice) return [['Wala pang presyo', 'I-set sa Settings']];
+    if (!o.hasPrice) return [['No price yet', 'Set it in Settings']];
     var note = '';
     if (o.tier) {
       var tiers = Costing.sortedTiers(product);
-      note = ' (presyo ng ' + tierRange(tiers, tiers.findIndex(function (t) { return t.minQty === o.tier.minQty; })) + ' pcs)';
+      note = ' (price for ' + tierRange(tiers, tiers.findIndex(function (t) { return t.minQty === o.tier.minQty; })) + ' pcs)';
     } else if (o.qty < (product.bulkQty || 0)) {
       var save = (product.startPrice || 0) - o.regularPrice;
-      if (save > 0) note = ' (' + peso.format(save) + ' mas mura kaysa isahan)';
+      if (save > 0) note = ' (' + peso.format(save) + ' less than buying 1)';
     }
     var out = [
-      ['Presyo para sa ' + o.qty + ' pcs', peso.format(o.regularPrice) + ' kada piraso' + note]
+      ['Price for ' + pcs(o.qty), peso.format(o.regularPrice) + ' per piece' + note]
     ];
-    if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' kada piraso)', '−' + peso.format(o.discount), 'discount']);
-    if (o.discount < 0) out.push(['Dagdag (' + peso.format(o.price) + ' kada piraso)', '+' + peso.format(-o.discount)]);
-    out.push(['Total (' + o.qty + ' pcs × ' + peso.format(o.price) + ')', peso.format(o.total), 'total']);
+    if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' per piece)', '−' + peso.format(o.discount), 'discount']);
+    if (o.discount < 0) out.push(['Surcharge (' + peso.format(o.price) + ' per piece)', '+' + peso.format(-o.discount)]);
+    out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price) + ')', peso.format(o.total), 'total']);
     if (o.unitCost > 0) {
-      out.push(['Puhunan', peso.format(o.cost)]);
-      out.push(['Tubo', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
+      out.push(['Cost', peso.format(o.cost)]);
+      out.push(['Profit', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
     }
     return out;
   }
@@ -489,6 +489,8 @@
   function unitMoney(n) {
     return n > 0 && n < 1 ? '₱' + (Math.round(n * 10000) / 10000) : peso.format(n);
   }
+
+  function pcs(n) { return +n === 1 ? '1 pc' : n + ' pcs'; }
 
   function fmt(n) {
     return (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString('en-PH');
@@ -513,23 +515,23 @@
       $(sel).closest('label').style.display = tier ? 'none' : '';
     });
     document.querySelectorAll('.calc-dim').forEach(function (el) { el.textContent = a ? a.dim : ''; });
-    $('#calc-rate-label').textContent = tier ? 'Presyo kada piraso' : 'Presyo per ' + a.area;
+    $('#calc-rate-label').textContent = tier ? 'Price per piece' : 'Price per ' + a.area;
 
     if (tier) {
       var t = Costing.computeTierOrder(p, state.items, { qty: qty });
       if (!calcRateTouched) $('#calc-rate').value = t.regularPrice;
       $('#calc-note').textContent = t.hasPrice
-        ? 'Naka-set: ' + tierSummary(p) + '. Mapapalitan sa Settings.'
-        : 'Wala pang presyo ang ' + p.name + '. I-set muna sa Settings.';
+        ? 'Set to: ' + tierSummary(p) + '. Change it in Settings.'
+        : p.name + ' has no price yet. Set it in Settings first.';
       $('#calc-total').innerHTML = rowsHtml(tierOrderRows(p, { qty: qty, price: $('#calc-rate').value }));
       return;
     }
 
     if (!calcRateTouched) $('#calc-rate').value = p.ratePerSqft || 0;
     $('#calc-note').textContent = p.ratePerSqft
-      ? 'Naka-set: ' + peso.format(p.ratePerSqft) + ' per ' + a.area +
-        (p.minPrice ? ', minimum ' + peso.format(p.minPrice) + ' kada piraso' : '') + '. Mapapalitan sa Settings.'
-      : 'Wala pang presyo ang ' + p.name + '. I-set muna sa Settings.';
+      ? 'Set to: ' + peso.format(p.ratePerSqft) + ' per ' + a.area +
+        (p.minPrice ? ', minimum ' + peso.format(p.minPrice) + ' per piece' : '') + '. Change it in Settings.'
+      : p.name + ' has no price yet. Set it in Settings first.';
     $('#calc-total').innerHTML = rowsHtml(sqftOrderRows(p, {
       width: $('#calc-width').value, height: $('#calc-height').value, qty: qty, rate: $('#calc-rate').value
     }));
@@ -568,22 +570,22 @@
       var name = isBuiltin(p.id) ? esc(p.name) : '<input data-field="name" value="' + esc(p.name) + '" required>';
       var priceCells = isScale(p)
         ? '<td colspan="2"><div class="scale">' +
-            '<span>₱</span><input data-field="startPrice" type="number" min="0" step="1" value="' + (p.startPrice || 0) + '" aria-label="Presyo sa 1 piraso">' +
-            '<span>sa 1 pc, pababa hanggang ₱</span><input data-field="bulkPrice" type="number" min="0" step="1" value="' + (p.bulkPrice || 0) + '" aria-label="Pinakamababang presyo">' +
-            '<span>mula</span><input data-field="bulkQty" type="number" min="2" step="1" value="' + (p.bulkQty || 0) + '" aria-label="Mula ilang piraso"><span>pcs</span></div></td>'
+            '<span>₱</span><input data-field="startPrice" type="number" min="0" step="1" value="' + (p.startPrice || 0) + '" aria-label="Price for 1 piece">' +
+            '<span>for 1 pc, sliding down to ₱</span><input data-field="bulkPrice" type="number" min="0" step="1" value="' + (p.bulkPrice || 0) + '" aria-label="Lowest price">' +
+            '<span>from</span><input data-field="bulkQty" type="number" min="2" step="1" value="' + (p.bulkQty || 0) + '" aria-label="From how many pieces"><span>pcs</span></div></td>'
         : isTier(p)
         ? '<td colspan="2"><div class="tiers">' + Costing.sortedTiers(p).map(function (t, i) {
-            return '<div class="tier" data-tier="' + i + '"><span>Mula</span>' +
-              '<input data-tier-field="minQty" type="number" min="1" step="1" value="' + t.minQty + '" aria-label="Mula ilang piraso">' +
-              '<span>pcs: ₱</span><input data-tier-field="price" type="number" min="0" step="0.01" value="' + t.price + '" aria-label="Presyo kada piraso">' +
-              '<button type="button" class="danger" data-remove-tier="' + i + '" aria-label="Alisin">✕</button></div>';
+            return '<div class="tier" data-tier="' + i + '"><span>From</span>' +
+              '<input data-tier-field="minQty" type="number" min="1" step="1" value="' + t.minQty + '" aria-label="From how many pieces">' +
+              '<span>pcs: ₱</span><input data-tier-field="price" type="number" min="0" step="0.01" value="' + t.price + '" aria-label="Price per piece">' +
+              '<button type="button" class="danger" data-remove-tier="' + i + '" aria-label="Remove">✕</button></div>';
           }).join('') + '<button type="button" data-add-tier>+ Tier</button>' + tierWarning(p) + '</div></td>'
         : '<td class="num"><input data-field="ratePerSqft" type="number" step="0.01" min="0" value="' + (p.ratePerSqft || 0) + '"></td>' +
           '<td class="num"><input data-field="minPrice" type="number" step="0.01" min="0" value="' + (p.minPrice || 0) + '"></td>';
       return '<tr data-id="' + p.id + '"><td>' + name + '</td>' +
         '<td>' + (isBuiltin(p.id) ? pricingLabel(p) : unitSel) + '</td>' +
         priceCells +
-        '<td>' + (isBuiltin(p.id) ? '' : '<button type="button" class="danger" data-remove-cat="' + p.id + '" aria-label="Burahin">✕</button>') + '</td></tr>';
+        '<td>' + (isBuiltin(p.id) ? '' : '<button type="button" class="danger" data-remove-cat="' + p.id + '" aria-label="Delete">✕</button>') + '</td></tr>';
     }).join('');
   }
 
@@ -594,11 +596,11 @@
     for (var i = 1; i < tiers.length; i++) {
       var q = tiers[i].minQty;
       if ((q - 1) * tiers[i - 1].price > q * tiers[i].price) {
-        bad.push((q - 1) + ' pcs (' + peso.format((q - 1) * tiers[i - 1].price) + ') ay mas mahal kaysa ' +
+        bad.push((q - 1) + ' pcs (' + peso.format((q - 1) * tiers[i - 1].price) + ') costs more than ' +
           q + ' pcs (' + peso.format(q * tiers[i].price) + ')');
       }
     }
-    return bad.length ? '<p class="warn">Paalala: ' + bad.join('; ') + '.</p>' : '';
+    return bad.length ? '<p class="warn">Note: ' + bad.join('; ') + '.</p>' : '';
   }
 
   function readPriceConfig() {
@@ -635,12 +637,12 @@
     if (editingProduct && isArea(editingProduct)) openProduct(findProduct(editingProduct.id) || editingProduct);
     renderAll();
     renderCalc(true);
-    $('#price-config-msg').textContent = 'Na-save ang mga presyo.';
+    $('#price-config-msg').textContent = 'Prices saved.';
   });
 
   $('#category-add').addEventListener('click', function () {
     readPriceConfig(); // keep prices typed but not yet saved
-    state.products.push(blankProduct({ id: uid(), name: 'Bagong category', pricing: 'sqin' }));
+    state.products.push(blankProduct({ id: uid(), name: 'New category', pricing: 'sqin' }));
     save();
     renderAll();
     var inputs = priceConfig.querySelectorAll('input[data-field="name"]');
@@ -713,8 +715,8 @@
     renderAll();
     renderCalc(true);
     $('#paste-categories').value = '';
-    $('#price-config-msg').textContent = added + ' bagong category, ' + updated + ' na-update.' +
-      (skipped.length ? ' Hindi nabasa: ' + skipped.join(', ') + ' (tingnan ang Sukat at Presyo).' : '');
+    $('#price-config-msg').textContent = added + ' new categories, ' + updated + ' updated.' +
+      (skipped.length ? ' Could not read: ' + skipped.join(', ') + ' (check the unit and price).' : '');
   });
 
   $('#price-config-rows').addEventListener('click', function (e) {
@@ -734,7 +736,7 @@
     }
     var id = e.target.dataset.removeCat;
     if (!id) return;
-    askConfirm('Burahin ang category na ito?', function () {
+    askConfirm('Delete this category?', function () {
       state.products = state.products.filter(function (p) { return p.id !== id; });
       save();
       if (editingProduct && editingProduct.id === id) { editingProduct = null; productForm.hidden = true; }
@@ -817,7 +819,7 @@
   $('#product-delete').addEventListener('click', function () {
     if (!editingProduct.id) return;
     var id = editingProduct.id;
-    askConfirm('Burahin ang product na ito?', function () {
+    askConfirm('Delete this product?', function () {
       state.products = state.products.filter(function (p) { return p.id !== id; });
       save();
       editingProduct = null;
@@ -848,15 +850,15 @@
     file.text().then(function (text) {
       var data = JSON.parse(text);
       if (!Array.isArray(data.items) || !Array.isArray(data.products)) throw new Error('bad file');
-      askConfirm('Papalitan nito ang lahat ng kasalukuyang data. Ituloy?', function () {
+      askConfirm('This replaces all your current data. Continue?', function () {
         state = ensureBuiltins({ items: data.items, products: data.products });
         save();
         editingProduct = null;
         productForm.hidden = true;
         renderAll();
-        setMsg('Na-import: ' + state.items.length + ' items, ' + state.products.length + ' products.');
-      }, 'Oo, palitan');
-    }).catch(function () { setMsg('Hindi ma-basa ang file. Siguraduhing JSON export ito ng app.'); });
+        setMsg('Imported: ' + state.items.length + ' items, ' + state.products.length + ' products.');
+      }, 'Yes, replace');
+    }).catch(function () { setMsg('Could not read the file. Make sure it is a JSON export from this app.'); });
     e.target.value = '';
   });
 
@@ -877,7 +879,7 @@
         var margin = rate > 0 ? Costing.round2((rate - r.totalCost) / rate * 100) : 0;
         return [p.name, 'per ' + AREA[p.pricing].area, r.materials, r.waste, r.labor, r.overhead, r.totalCost, '', rate, margin];
       }
-      return [p.name, 'per piraso', r.materials, r.waste, r.labor, r.overhead, r.totalCost, r.markup, r.price, r.marginPct];
+      return [p.name, 'per piece', r.materials, r.waste, r.labor, r.overhead, r.totalCost, r.markup, r.price, r.marginPct];
     });
     var csv = [header].concat(rows).map(function (r) { return r.map(csvCell).join(','); }).join('\n');
     download('scarlet-costing.csv', csv, 'text/csv');
@@ -909,7 +911,7 @@
     save();
     renderAll();
     $('#paste-items').value = '';
-    setMsg(added + ' bagong items, ' + updated + ' na-update.');
+    setMsg(added + ' new items, ' + updated + ' updated.');
   });
 
   function renderAll() {
