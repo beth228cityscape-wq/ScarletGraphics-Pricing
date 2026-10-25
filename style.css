@@ -91,3 +91,7 @@ form[data-pricing="tier"] .area-only, form[data-pricing="tier"] .unit-only { dis
 .overlay[hidden] { display: none; }
 .dialog { max-width: 380px; width: 100%; margin: 0; }
 .dialog p { margin: 0; }
+.with-unit { display: flex; gap: 6px; }
+.with-unit select { width: auto; flex: none; }
+h3 small { font-weight: 400; font-size: 12px; }
+.grid + .grid { margin-top: 12px; }

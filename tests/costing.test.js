@@ -120,3 +120,13 @@ test('sliding price total never drops when a piece is added', () => {
     prev = t;
   }
 });
+
+const { rollArea, round2 } = require('../costing.js');
+
+test('roll area converts mixed units', () => {
+  // Olfa vinyl roll: 4.5 ft x 50 m
+  const sqft = rollArea(4.5, 'ft', 50, 'm');
+  assert.strictEqual(round2(sqft), 738.19);
+  assert.strictEqual(round2(3600 / sqft), 4.88);
+  assert.strictEqual(round2(rollArea(1, 'ft', 1, 'ft', 'sqin')), 144);
+});

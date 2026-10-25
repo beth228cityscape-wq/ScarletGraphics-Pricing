@@ -43,9 +43,22 @@
         <div class="grid">
           <label>Pangalan<input name="name" required placeholder="hal. Sticker paper A4"></label>
           <label>Category<input name="category" placeholder="hal. Paper, Ink, Vinyl" list="category-list"></label>
-          <label>Unit<input name="unit" required placeholder="pc, sheet, sqft, ml"></label>
-          <label><span>Presyo ng pack (₱) <small>optional</small></span><input name="packPrice" type="number" step="0.01" min="0" placeholder="hal. 167"></label>
-          <label><span>Ilan sa isang pack <small>optional</small></span><input name="packQty" type="number" step="any" min="0" placeholder="hal. 50"></label>
+          <label><span>Supplier <small>optional</small></span><input name="supplier" placeholder="hal. Adcon" list="supplier-list"></label>
+          <label>Unit<input name="unit" required placeholder="pc, sheet, sq ft, ml"></label>
+        </div>
+
+        <h3>Kung naka-pack o naka-roll <small class="muted">(optional)</small></h3>
+        <div class="grid">
+          <label>Presyo ng pack / roll (₱)<input name="packPrice" type="number" step="0.01" min="0" placeholder="hal. 167 o 3600"></label>
+          <label>Ilan sa isang pack<input name="packQty" type="number" step="any" min="0" placeholder="hal. 50 sheets"></label>
+          <label>Lapad ng roll
+            <span class="with-unit"><input name="rollWidth" type="number" step="any" min="0" placeholder="hal. 4.5"><select name="rollWidthUnit" aria-label="Unit ng lapad"><option>ft</option><option>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
+          </label>
+          <label>Haba ng roll
+            <span class="with-unit"><input name="rollLength" type="number" step="any" min="0" placeholder="hal. 50"><select name="rollLengthUnit" aria-label="Unit ng haba"><option>ft</option><option selected>m</option><option>in</option><option>cm</option><option>yd</option></select></span>
+          </label>
+        </div>
+        <div class="grid">
           <label>Cost per unit (₱)<input name="cost" type="number" step="any" min="0" required></label>
         </div>
         <p id="pack-note" class="muted small"></p>
@@ -55,6 +68,7 @@
         </div>
       </form>
       <datalist id="category-list"></datalist>
+      <datalist id="supplier-list"></datalist>
 
       <div class="card">
         <div class="toolbar">
@@ -62,7 +76,7 @@
           <input id="item-search" type="search" placeholder="Hanapin...">
         </div>
         <table>
-          <thead><tr><th>Pangalan</th><th>Category</th><th>Unit</th><th class="num">Pack</th><th class="num">Cost/unit</th><th></th></tr></thead>
+          <thead><tr><th>Pangalan</th><th>Category</th><th>Unit</th><th class="num">Pack / Roll</th><th class="num">Cost/unit</th><th></th></tr></thead>
           <tbody id="item-rows"></tbody>
         </table>
         <p id="item-empty" class="empty">Wala pang items. Magdagdag sa taas.</p>

@@ -146,7 +146,17 @@
     };
   }
 
+  // Length units in feet, for rolls measured in mixed units (e.g. 4.5 ft x 50 m).
+  var FEET_PER = { ft: 1, m: 3.28084, in: 1 / 12, cm: 0.0328084, yd: 3 };
+
+  // Area of a roll in sq ft, or in sq in when areaUnit is 'sqin'.
+  function rollArea(width, widthUnit, length, lengthUnit, areaUnit) {
+    var sqft = num(width) * (FEET_PER[widthUnit] || 1) * num(length) * (FEET_PER[lengthUnit] || 1);
+    return areaUnit === 'sqin' ? sqft * 144 : sqft;
+  }
+
   var api = {
+    rollArea: rollArea,
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
     computeTierOrder: computeTierOrder, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };

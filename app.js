@@ -162,12 +162,16 @@
   function renderItems() {
     var q = $('#item-search').value.trim().toLowerCase();
     var rows = sortedItems().filter(function (it) {
-      return !q || (it.name + ' ' + (it.category || '')).toLowerCase().indexOf(q) !== -1;
+      return !q || (it.name + ' ' + (it.category || '') + ' ' + (it.supplier || '')).toLowerCase().indexOf(q) !== -1;
     });
     $('#item-rows').innerHTML = rows.map(function (it) {
-      return '<tr><td>' + esc(it.name) + '</td><td>' + esc(it.category) + '</td><td>' + esc(it.unit) +
-        '</td><td class="num muted">' + (it.packQty ? peso.format(it.packPrice) + ' / ' + fmt(it.packQty) + ' ' + esc(it.unit) : '') +
-        '</td><td class="num">' + peso.format(it.cost) + '</td><td class="row-actions">' +
+      var bought = isRoll(it)
+        ? peso.format(it.packPrice) + ' / ' + fmt(it.rollWidth) + ' ' + it.rollWidthUnit + ' × ' + fmt(it.rollLength) + ' ' + it.rollLengthUnit
+        : it.packQty ? peso.format(it.packPrice) + ' / ' + fmt(it.packQty) + ' ' + esc(it.unit) : '';
+      return '<tr><td>' + esc(it.name) + (it.supplier ? '<div class="muted small">' + esc(it.supplier) + '</div>' : '') +
+        '</td><td>' + esc(it.category) + '</td><td>' + esc(it.unit) +
+        '</td><td class="num muted">' + bought +
+        '</td><td class="num">' + unitMoney(it.cost) + '</td><td class="row-actions">' +
         '<button data-edit="' + it.id + '">Edit</button>' +
         '<button data-del="' + it.id + '" class="danger">Burahin</button></td></tr>';
     }).join('');
@@ -176,6 +180,11 @@
     var cats = {};
     state.items.forEach(function (it) { if (it.category) cats[it.category] = true; });
     $('#category-list').innerHTML = Object.keys(cats).sort().map(function (c) {
+      return '<option value="' + esc(c) + '">';
+    }).join('');
+    var sups = {};
+    state.items.forEach(function (it) { if (it.supplier) sups[it.supplier] = true; });
+    $('#supplier-list').innerHTML = Object.keys(sups).sort().map(function (c) {
       return '<option value="' + esc(c) + '">';
     }).join('');
   }
@@ -188,35 +197,70 @@
     $('#item-cancel').hidden = true;
   }
 
-  // Cost per unit = pack price / pieces per pack, when both are filled in.
-  function packCost() {
-    var price = parseFloat(itemForm.packPrice.value), qty = parseFloat(itemForm.packQty.value);
-    return price > 0 && qty > 0 ? price / qty : null;
+  function isRoll(it) { return it.rollWidth > 0 && it.rollLength > 0; }
+
+  // Roll items are priced per sq in when their unit says so, otherwise per sq ft.
+  function rollAreaUnit(unit) { return /in/i.test(unit || '') ? 'sqin' : 'sqft'; }
+
+  // Reads the pack/roll fields. Returns how the cost per unit is derived from
+  // them, or null when the cost per unit is typed in directly.
+  function boughtAs() {
+    var f = itemForm;
+    var price = parseFloat(f.packPrice.value);
+    if (!(price > 0)) return null;
+    var w = parseFloat(f.rollWidth.value), l = parseFloat(f.rollLength.value);
+    if (w > 0 && l > 0) {
+      var areaUnit = rollAreaUnit(f.unit.value);
+      var area = Costing.rollArea(w, f.rollWidthUnit.value, l, f.rollLengthUnit.value, areaUnit);
+      return {
+        cost: price / area,
+        fields: { packPrice: price, packQty: 0, rollWidth: w, rollWidthUnit: f.rollWidthUnit.value, rollLength: l, rollLengthUnit: f.rollLengthUnit.value },
+        note: fmt(w) + ' ' + f.rollWidthUnit.value + ' × ' + fmt(l) + ' ' + f.rollLengthUnit.value + ' = ' +
+          fmt(area) + (areaUnit === 'sqin' ? ' sq in' : ' sq ft') + ' → ' + peso.format(price) + ' ÷ ' + fmt(area) + ' = '
+      };
+    }
+    var qty = parseFloat(f.packQty.value);
+    if (qty > 0) {
+      return {
+        cost: price / qty,
+        fields: { packPrice: price, packQty: qty, rollWidth: 0, rollLength: 0 },
+        note: peso.format(price) + ' ÷ ' + fmt(qty) + ' = '
+      };
+    }
+    return null;
   }
 
   function updatePackCost() {
-    var c = packCost();
-    itemForm.cost.readOnly = c !== null;
-    if (c !== null) itemForm.cost.value = Math.round(c * 10000) / 10000;
-    var unit = itemForm.unit.value.trim() || 'unit';
-    $('#pack-note').textContent = c !== null
-      ? peso.format(parseFloat(itemForm.packPrice.value)) + ' ÷ ' + fmt(itemForm.packQty.value) + ' = ' + peso.format(c) + ' kada ' + unit
-      : '';
+    var f = itemForm;
+    // A roll is costed by area, so default its unit to sq ft.
+    if (parseFloat(f.rollWidth.value) > 0 && parseFloat(f.rollLength.value) > 0 && !/sq|ft|in/i.test(f.unit.value)) {
+      f.unit.value = 'sq ft';
+    }
+    var b = boughtAs();
+    f.cost.readOnly = b !== null;
+    if (b) f.cost.value = Math.round(b.cost * 10000) / 10000;
+    var unit = f.unit.value.trim() || 'unit';
+    var c = b ? unitMoney(b.cost) : '';
+    $('#pack-note').textContent = b ? b.note + c + ' kada ' + unit : '';
   }
 
-  ['packPrice', 'packQty', 'unit'].forEach(function (k) { itemForm[k].addEventListener('input', updatePackCost); });
+  ['packPrice', 'packQty', 'unit', 'rollWidth', 'rollLength', 'rollWidthUnit', 'rollLengthUnit'].forEach(function (k) {
+    itemForm[k].addEventListener('input', updatePackCost);
+    itemForm[k].addEventListener('change', updatePackCost);
+  });
 
   itemForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var data = {
+    var b = boughtAs();
+    var data = Object.assign({
       id: itemForm.id.value || uid(),
       name: itemForm.name.value.trim(),
       category: itemForm.category.value.trim(),
+      supplier: itemForm.supplier.value.trim(),
       unit: itemForm.unit.value.trim(),
-      cost: packCost() !== null ? packCost() : (parseFloat(itemForm.cost.value) || 0),
-      packPrice: packCost() !== null ? parseFloat(itemForm.packPrice.value) : 0,
-      packQty: packCost() !== null ? parseFloat(itemForm.packQty.value) : 0
-    };
+      cost: b ? b.cost : (parseFloat(itemForm.cost.value) || 0),
+      packPrice: 0, packQty: 0, rollWidth: 0, rollLength: 0
+    }, b ? b.fields : {});
     var idx = state.items.findIndex(function (it) { return it.id === data.id; });
     if (idx >= 0) state.items[idx] = data; else state.items.push(data);
     save();
@@ -236,8 +280,13 @@
       itemForm.category.value = it.category || '';
       itemForm.unit.value = it.unit;
       itemForm.cost.value = Math.round(it.cost * 10000) / 10000;
-      itemForm.packPrice.value = it.packQty ? it.packPrice : '';
+      itemForm.supplier.value = it.supplier || '';
+      itemForm.packPrice.value = it.packQty || isRoll(it) ? it.packPrice : '';
       itemForm.packQty.value = it.packQty || '';
+      itemForm.rollWidth.value = isRoll(it) ? it.rollWidth : '';
+      itemForm.rollLength.value = isRoll(it) ? it.rollLength : '';
+      itemForm.rollWidthUnit.value = it.rollWidthUnit || 'ft';
+      itemForm.rollLengthUnit.value = it.rollLengthUnit || 'm';
       updatePackCost();
       $('#item-form-title').textContent = 'I-edit ang item';
       $('#item-cancel').hidden = false;
@@ -322,7 +371,7 @@
       var line = r.lines[i];
       return '<tr data-i="' + i + '"><td><select data-field="itemId">' + itemOptions(c.itemId) + '</select></td>' +
         '<td class="num"><input data-field="qty" type="number" step="any" min="0" value="' + esc(c.qty) + '"></td>' +
-        '<td class="num">' + peso.format(line.unitCost) + '</td>' +
+        '<td class="num">' + unitMoney(line.unitCost) + '</td>' +
         '<td class="num">' + peso.format(line.total) + '</td>' +
         '<td><button type="button" data-remove="' + i + '" class="danger" aria-label="Alisin">✕</button></td></tr>';
     }).join('');
@@ -359,7 +408,7 @@
     document.querySelectorAll('#component-rows tr').forEach(function (tr, i) {
       var cells = tr.querySelectorAll('td.num');
       if (lines[i]) {
-        cells[1].textContent = peso.format(lines[i].unitCost);
+        cells[1].textContent = unitMoney(lines[i].unitCost);
         cells[2].textContent = peso.format(lines[i].total);
       }
     });
@@ -430,6 +479,11 @@
     return rows.map(function (row) {
       return '<div class="' + (row[2] || '') + '"><span>' + row[0] + '</span><span>' + row[1] + '</span></div>';
     }).join('');
+  }
+
+  // Peso amount that keeps small unit costs readable (₱0.0339 instead of ₱0.03).
+  function unitMoney(n) {
+    return n > 0 && n < 1 ? '₱' + (Math.round(n * 10000) / 10000) : peso.format(n);
   }
 
   function fmt(n) {
