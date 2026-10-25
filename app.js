@@ -123,6 +123,25 @@
     });
   }
 
+  // In-page yes/no dialog. The browser's confirm() is blocked when the app runs
+  // inside an embedded page, which made delete buttons silently do nothing.
+  function askConfirm(message, onYes, yesLabel) {
+    var dlg = $('#confirm');
+    $('#confirm-msg').textContent = message;
+    $('#confirm-yes').textContent = yesLabel || 'Oo, burahin';
+    dlg.hidden = false;
+    $('#confirm-yes').focus();
+    function close(yes) {
+      dlg.hidden = true;
+      $('#confirm-yes').onclick = $('#confirm-no').onclick = dlg.onclick = document.onkeydown = null;
+      if (yes) onYes();
+    }
+    $('#confirm-yes').onclick = function () { close(true); };
+    $('#confirm-no').onclick = function () { close(false); };
+    dlg.onclick = function (e) { if (e.target === dlg) close(false); };
+    document.onkeydown = function (e) { if (e.key === 'Escape') close(false); };
+  }
+
   function sortedItems() {
     return state.items.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
   }
@@ -230,11 +249,11 @@
       var msg = usedIn.length
         ? 'Ginagamit ito sa: ' + usedIn.join(', ') + '. Burahin pa rin?'
         : 'Burahin ang item na ito?';
-      if (confirm(msg)) {
+      askConfirm(msg, function () {
         state.items = state.items.filter(function (x) { return x.id !== delId; });
         save();
         renderAll();
-      }
+      });
     }
   });
 
@@ -656,11 +675,13 @@
       return;
     }
     var id = e.target.dataset.removeCat;
-    if (!id || !confirm('Burahin ang category na ito?')) return;
-    state.products = state.products.filter(function (p) { return p.id !== id; });
-    save();
-    if (editingProduct && editingProduct.id === id) { editingProduct = null; productForm.hidden = true; }
-    renderAll();
+    if (!id) return;
+    askConfirm('Burahin ang category na ito?', function () {
+      state.products = state.products.filter(function (p) { return p.id !== id; });
+      save();
+      if (editingProduct && editingProduct.id === id) { editingProduct = null; productForm.hidden = true; }
+      renderAll();
+    });
   });
 
   $('#product-new').addEventListener('click', function () {
@@ -736,13 +757,15 @@
   });
 
   $('#product-delete').addEventListener('click', function () {
-    if (!editingProduct.id || !confirm('Burahin ang product na ito?')) return;
+    if (!editingProduct.id) return;
     var id = editingProduct.id;
-    state.products = state.products.filter(function (p) { return p.id !== id; });
-    save();
-    editingProduct = null;
-    productForm.hidden = true;
-    renderProductList();
+    askConfirm('Burahin ang product na ito?', function () {
+      state.products = state.products.filter(function (p) { return p.id !== id; });
+      save();
+      editingProduct = null;
+      productForm.hidden = true;
+      renderAll();
+    });
   });
 
   // ---------- Backup / import ----------
@@ -767,13 +790,14 @@
     file.text().then(function (text) {
       var data = JSON.parse(text);
       if (!Array.isArray(data.items) || !Array.isArray(data.products)) throw new Error('bad file');
-      if (!confirm('Papalitan nito ang lahat ng kasalukuyang data. Ituloy?')) return;
-      state = ensureBuiltins({ items: data.items, products: data.products });
-      save();
-      editingProduct = null;
-      productForm.hidden = true;
-      renderAll();
-      setMsg('Na-import: ' + state.items.length + ' items, ' + state.products.length + ' products.');
+      askConfirm('Papalitan nito ang lahat ng kasalukuyang data. Ituloy?', function () {
+        state = ensureBuiltins({ items: data.items, products: data.products });
+        save();
+        editingProduct = null;
+        productForm.hidden = true;
+        renderAll();
+        setMsg('Na-import: ' + state.items.length + ' items, ' + state.products.length + ' products.');
+      }, 'Oo, palitan');
     }).catch(function () { setMsg('Hindi ma-basa ang file. Siguraduhing JSON export ito ng app.'); });
     e.target.value = '';
   });

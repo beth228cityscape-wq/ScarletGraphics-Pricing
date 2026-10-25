@@ -87,3 +87,7 @@ form[data-pricing="tier"] .area-only, form[data-pricing="tier"] .unit-only { dis
 #price-config-rows .tier input, #price-config-rows .scale input { width: 80px; }
 .scale { flex-wrap: wrap; }
 .warn { color: #b25e00; font-size: 13px; margin: 4px 0 0; white-space: normal; }
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+.overlay[hidden] { display: none; }
+.dialog { max-width: 380px; width: 100%; margin: 0; }
+.dialog p { margin: 0; }
