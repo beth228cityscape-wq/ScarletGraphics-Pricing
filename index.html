@@ -10,15 +10,32 @@
   <header>
     <h1>Scarlet Graphics <span>Costing</span></h1>
     <nav>
-      <button data-tab="items" class="active">Items / Materials</button>
+      <button data-tab="tarp" class="active">Tarpaulin</button>
+      <button data-tab="items">Items / Materials</button>
       <button data-tab="products">Products</button>
-      <button data-tab="settings">Backup</button>
+      <button data-tab="settings">Settings</button>
     </nav>
   </header>
 
   <main>
+    <!-- TARPAULIN QUICK CALCULATOR -->
+    <section id="tab-tarp" class="tab active">
+      <div class="card">
+        <h2>Compute ng tarpaulin</h2>
+        <p class="muted" id="tarp-config-note"></p>
+        <div class="qty-calc">
+          <label>Lapad (ft)<input id="tarp-width" type="number" step="any" min="0" value="4"></label>
+          <label>Haba (ft)<input id="tarp-height" type="number" step="any" min="0" value="4"></label>
+          <label>Ilang piraso?<input id="tarp-qty" type="number" min="1" value="1"></label>
+          <label>Presyo per sq ft (₱)<input id="tarp-rate" type="number" step="0.01" min="0"></label>
+        </div>
+        <p class="muted small">Palitan lang ang presyo per sq ft dito kung may discount. Hindi nito binabago ang naka-set sa Settings.</p>
+        <div id="tarp-total" class="order-total"></div>
+      </div>
+    </section>
+
     <!-- ITEMS -->
-    <section id="tab-items" class="tab active">
+    <section id="tab-items" class="tab">
       <form id="item-form" class="card">
         <h2 id="item-form-title">Bagong item</h2>
         <input type="hidden" name="id">
@@ -112,6 +129,16 @@
 
     <!-- SETTINGS / BACKUP -->
     <section id="tab-settings" class="tab">
+      <form id="tarp-config" class="card">
+        <h2>Presyo ng tarpaulin</h2>
+        <div class="grid">
+          <label>Presyo per sq ft (₱)<input name="ratePerSqft" type="number" step="0.01" min="0" required></label>
+          <label>Minimum na presyo kada piraso (₱)<input name="minPrice" type="number" step="0.01" min="0" required></label>
+        </div>
+        <div class="actions"><button type="submit" class="primary">I-save</button></div>
+        <p id="tarp-config-msg" class="msg"></p>
+      </form>
+
       <div class="card">
         <h2>Backup at import</h2>
         <p>Naka-save ang data sa browser na ito. Mag-export paminsan-minsan para may backup, o para mailipat sa ibang computer.</p>

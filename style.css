@@ -70,3 +70,5 @@ form[data-pricing="unit"] .sqft-only, form[data-pricing="sqft"] .unit-only { dis
   #tab-items th:nth-child(2), #item-rows td:nth-child(2) { display: none; }
   #product-form th:nth-child(3), #component-rows td:nth-child(3) { display: none; }
 }
+.small { font-size: 13px; margin: 8px 0 0; }
+#tab-tarp .card { max-width: 640px; }

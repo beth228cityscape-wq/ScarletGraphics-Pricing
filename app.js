@@ -2,7 +2,14 @@
   var STORAGE_KEY = 'scarlet-costing-v1';
   var peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-  var state = load();
+  // Built-in tarpaulin product. Its rate and minimum are changed under Settings.
+  var TARP_ID = 'tarpaulin';
+  var TARP_DEFAULTS = {
+    id: TARP_ID, name: 'Tarpaulin', pricing: 'sqft', components: [],
+    wastePct: 0, labor: 0, overheadPct: 0, markupPct: 0, ratePerSqft: 25, minPrice: 200
+  };
+
+  var state = ensureTarp(load());
   var editingProduct = null; // working copy of the product in the form
 
   function load() {
@@ -14,6 +21,25 @@
       }
     } catch (e) { /* fall through to empty state */ }
     return { items: [], products: [] };
+  }
+
+  function ensureTarp(st) {
+    if (st.products.some(function (p) { return p.id === TARP_ID; })) return st;
+    // Adopt a tarpaulin product made by hand before the built-in one existed.
+    var own = st.products.find(function (p) {
+      return p.pricing === 'sqft' && /^tarp(aulin)?$/i.test((p.name || '').trim());
+    });
+    if (own) {
+      own.id = TARP_ID;
+      if (!own.minPrice) own.minPrice = TARP_DEFAULTS.minPrice;
+    } else {
+      st.products.push(JSON.parse(JSON.stringify(TARP_DEFAULTS)));
+    }
+    return st;
+  }
+
+  function tarp() {
+    return state.products.find(function (p) { return p.id === TARP_ID; });
   }
 
   function save() {
@@ -151,7 +177,7 @@
     if (!keepOrder) $('#order-rate').value = p.ratePerSqft || 0;
     applyPricingMode();
     $('#product-form-title').textContent = p.id ? 'I-edit ang product' : 'Bagong product';
-    $('#product-delete').hidden = !p.id;
+    $('#product-delete').hidden = !p.id || p.id === TARP_ID;
     $('#product-duplicate').hidden = !p.id;
     renderComponents();
     renderProductList();
@@ -225,20 +251,10 @@
     var qty = Math.max(1, parseInt($('#order-qty').value, 10) || 1);
     var out;
     if (sqft) {
-      var o = Costing.computeSqftOrder(editingProduct, state.items, {
+      out = sqftOrderRows(editingProduct, {
         width: $('#order-width').value, height: $('#order-height').value,
         qty: qty, rate: $('#order-rate').value
       });
-      out = [
-        ['Sukat', fmt($('#order-width').value) + ' × ' + fmt($('#order-height').value) + ' ft = ' + fmt(o.area) + ' sq ft'],
-        ['Kada piraso', fmt(o.area) + ' sq ft × ' + peso.format(o.rate) + ' = ' + peso.format(o.computedPerPiece)]
-      ];
-      if (o.minApplied) out.push(['Minimum na presyo (mas mababa sa ' + peso.format(o.minPrice) + ')', peso.format(o.pricePerPiece) + ' kada piraso', 'minimum']);
-      if (o.discount > 0) out.push(['Discount (mula ' + peso.format(o.baseRate) + '/sq ft)', '−' + peso.format(o.discount), 'discount']);
-      if (o.discount < 0) out.push(['Dagdag (mula ' + peso.format(o.baseRate) + '/sq ft)', '+' + peso.format(-o.discount)]);
-      out.push(['Total (' + qty + ' pcs)', peso.format(o.total), 'total']);
-      out.push(['Puhunan', peso.format(o.cost)]);
-      out.push(['Tubo', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
     } else {
       out = [
         ['Total (' + qty + ' pcs)', peso.format(r.price * qty), 'total'],
@@ -246,10 +262,64 @@
         ['Tubo', peso.format(r.profit * qty)]
       ];
     }
-    $('#order-total').innerHTML = out.map(function (row) {
+    $('#order-total').innerHTML = rowsHtml(out);
+  }
+
+  function sqftOrderRows(product, order) {
+    var o = Costing.computeSqftOrder(product, state.items, order);
+    var out = [
+      ['Sukat', fmt(order.width) + ' × ' + fmt(order.height) + ' ft = ' + fmt(o.area) + ' sq ft'],
+      ['Kada piraso', fmt(o.area) + ' sq ft × ' + peso.format(o.rate) + ' = ' + peso.format(o.computedPerPiece)]
+    ];
+    if (o.minApplied) out.push(['Minimum na presyo (mas mababa sa ' + peso.format(o.minPrice) + ')', peso.format(o.pricePerPiece) + ' kada piraso', 'minimum']);
+    if (o.discount > 0) out.push(['Discount (mula ' + peso.format(o.baseRate) + '/sq ft)', '−' + peso.format(o.discount), 'discount']);
+    if (o.discount < 0) out.push(['Dagdag (mula ' + peso.format(o.baseRate) + '/sq ft)', '+' + peso.format(-o.discount)]);
+    out.push(['Total (' + order.qty + ' pcs)', peso.format(o.total), 'total']);
+    // Cost and profit only mean something once per-sq-ft materials or labor are filled in.
+    if (o.costPerSqft > 0) {
+      out.push(['Puhunan', peso.format(o.cost)]);
+      out.push(['Tubo', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
+    }
+    return out;
+  }
+
+  function rowsHtml(rows) {
+    return rows.map(function (row) {
       return '<div class="' + (row[2] || '') + '"><span>' + row[0] + '</span><span>' + row[1] + '</span></div>';
     }).join('');
   }
+
+  // ---------- Tarpaulin quick calculator and settings ----------
+  var tarpConfig = $('#tarp-config');
+
+  function renderTarp(resetRate) {
+    var t = tarp();
+    if (resetRate || $('#tarp-rate').value === '') $('#tarp-rate').value = t.ratePerSqft;
+    $('#tarp-config-note').textContent = 'Naka-set: ' + peso.format(t.ratePerSqft) + ' per sq ft, minimum ' +
+      peso.format(t.minPrice || 0) + ' kada piraso. Mapapalitan sa Settings.';
+    var qty = Math.max(1, parseInt($('#tarp-qty').value, 10) || 1);
+    $('#tarp-total').innerHTML = rowsHtml(sqftOrderRows(t, {
+      width: $('#tarp-width').value, height: $('#tarp-height').value, qty: qty, rate: $('#tarp-rate').value
+    }));
+    tarpConfig.ratePerSqft.value = t.ratePerSqft;
+    tarpConfig.minPrice.value = t.minPrice || 0;
+  }
+
+  ['#tarp-width', '#tarp-height', '#tarp-qty', '#tarp-rate'].forEach(function (sel) {
+    $(sel).addEventListener('input', function () { renderTarp(false); });
+  });
+
+  tarpConfig.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var t = tarp();
+    t.ratePerSqft = parseFloat(tarpConfig.ratePerSqft.value) || 0;
+    t.minPrice = parseFloat(tarpConfig.minPrice.value) || 0;
+    save();
+    if (editingProduct && editingProduct.id === TARP_ID) openProduct(t);
+    renderAll();
+    renderTarp(true);
+    $('#tarp-config-msg').textContent = 'Na-save. ' + peso.format(t.ratePerSqft) + ' per sq ft, minimum ' + peso.format(t.minPrice) + '.';
+  });
 
   function fmt(n) {
     return (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString('en-PH');
@@ -316,6 +386,7 @@
     if (idx >= 0) state.products[idx] = p; else state.products.push(p);
     save();
     openProduct(p, true);
+    if (p.id === TARP_ID) renderTarp(true);
   });
 
   $('#product-duplicate').addEventListener('click', function () {
@@ -359,7 +430,7 @@
       var data = JSON.parse(text);
       if (!Array.isArray(data.items) || !Array.isArray(data.products)) throw new Error('bad file');
       if (!confirm('Papalitan nito ang lahat ng kasalukuyang data. Ituloy?')) return;
-      state = { items: data.items, products: data.products };
+      state = ensureTarp({ items: data.items, products: data.products });
       save();
       editingProduct = null;
       productForm.hidden = true;
@@ -417,6 +488,7 @@
   function renderAll() {
     renderItems();
     renderProductList();
+    renderTarp(false);
     if (editingProduct && !productForm.hidden) renderComponents();
   }
 
