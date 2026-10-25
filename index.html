@@ -44,8 +44,11 @@
           <label>Pangalan<input name="name" required placeholder="hal. Sticker paper A4"></label>
           <label>Category<input name="category" placeholder="hal. Paper, Ink, Vinyl" list="category-list"></label>
           <label>Unit<input name="unit" required placeholder="pc, sheet, sqft, ml"></label>
-          <label>Cost per unit (₱)<input name="cost" type="number" step="0.01" min="0" required></label>
+          <label><span>Presyo ng pack (₱) <small>optional</small></span><input name="packPrice" type="number" step="0.01" min="0" placeholder="hal. 167"></label>
+          <label><span>Ilan sa isang pack <small>optional</small></span><input name="packQty" type="number" step="any" min="0" placeholder="hal. 50"></label>
+          <label>Cost per unit (₱)<input name="cost" type="number" step="any" min="0" required></label>
         </div>
+        <p id="pack-note" class="muted small"></p>
         <div class="actions">
           <button type="submit" class="primary">I-save</button>
           <button type="button" id="item-cancel" hidden>Cancel</button>
@@ -59,7 +62,7 @@
           <input id="item-search" type="search" placeholder="Hanapin...">
         </div>
         <table>
-          <thead><tr><th>Pangalan</th><th>Category</th><th>Unit</th><th class="num">Cost/unit</th><th></th></tr></thead>
+          <thead><tr><th>Pangalan</th><th>Category</th><th>Unit</th><th class="num">Pack</th><th class="num">Cost/unit</th><th></th></tr></thead>
           <tbody id="item-rows"></tbody>
         </table>
         <p id="item-empty" class="empty">Wala pang items. Magdagdag sa taas.</p>
@@ -161,7 +164,7 @@
           <button id="export-csv">I-export ang costing (CSV)</button>
         </div>
         <h3>Mag-import ng items mula sa CSV / Google Sheets</h3>
-        <p>I-paste dito ang columns na <code>Pangalan, Category, Unit, Cost</code> (pwedeng kopyahin direkta mula sa Google Sheets o Excel).</p>
+        <p>I-paste dito ang columns na <code>Pangalan, Category, Unit, Cost</code> (pwedeng kopyahin direkta mula sa Google Sheets o Excel). Kung naka-pack, idagdag ang ika-5 column na <code>Ilan sa pack</code>; ang Cost ay ituturing na presyo ng buong pack.</p>
         <textarea id="paste-items" rows="6" placeholder="Sticker paper A4	Paper	sheet	12.50"></textarea>
         <div class="actions"><button id="paste-import" class="primary">I-import ang items</button></div>
         <p id="settings-msg" class="msg"></p>

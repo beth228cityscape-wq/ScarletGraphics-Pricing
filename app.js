@@ -147,6 +147,7 @@
     });
     $('#item-rows').innerHTML = rows.map(function (it) {
       return '<tr><td>' + esc(it.name) + '</td><td>' + esc(it.category) + '</td><td>' + esc(it.unit) +
+        '</td><td class="num muted">' + (it.packQty ? peso.format(it.packPrice) + ' / ' + fmt(it.packQty) + ' ' + esc(it.unit) : '') +
         '</td><td class="num">' + peso.format(it.cost) + '</td><td class="row-actions">' +
         '<button data-edit="' + it.id + '">Edit</button>' +
         '<button data-del="' + it.id + '" class="danger">Burahin</button></td></tr>';
@@ -163,9 +164,28 @@
   function resetItemForm() {
     itemForm.reset();
     itemForm.id.value = '';
+    updatePackCost();
     $('#item-form-title').textContent = 'Bagong item';
     $('#item-cancel').hidden = true;
   }
+
+  // Cost per unit = pack price / pieces per pack, when both are filled in.
+  function packCost() {
+    var price = parseFloat(itemForm.packPrice.value), qty = parseFloat(itemForm.packQty.value);
+    return price > 0 && qty > 0 ? price / qty : null;
+  }
+
+  function updatePackCost() {
+    var c = packCost();
+    itemForm.cost.readOnly = c !== null;
+    if (c !== null) itemForm.cost.value = Math.round(c * 10000) / 10000;
+    var unit = itemForm.unit.value.trim() || 'unit';
+    $('#pack-note').textContent = c !== null
+      ? peso.format(parseFloat(itemForm.packPrice.value)) + ' ÷ ' + fmt(itemForm.packQty.value) + ' = ' + peso.format(c) + ' kada ' + unit
+      : '';
+  }
+
+  ['packPrice', 'packQty', 'unit'].forEach(function (k) { itemForm[k].addEventListener('input', updatePackCost); });
 
   itemForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -174,7 +194,9 @@
       name: itemForm.name.value.trim(),
       category: itemForm.category.value.trim(),
       unit: itemForm.unit.value.trim(),
-      cost: parseFloat(itemForm.cost.value) || 0
+      cost: packCost() !== null ? packCost() : (parseFloat(itemForm.cost.value) || 0),
+      packPrice: packCost() !== null ? parseFloat(itemForm.packPrice.value) : 0,
+      packQty: packCost() !== null ? parseFloat(itemForm.packQty.value) : 0
     };
     var idx = state.items.findIndex(function (it) { return it.id === data.id; });
     if (idx >= 0) state.items[idx] = data; else state.items.push(data);
@@ -194,7 +216,10 @@
       itemForm.name.value = it.name;
       itemForm.category.value = it.category || '';
       itemForm.unit.value = it.unit;
-      itemForm.cost.value = it.cost;
+      itemForm.cost.value = Math.round(it.cost * 10000) / 10000;
+      itemForm.packPrice.value = it.packQty ? it.packPrice : '';
+      itemForm.packQty.value = it.packQty || '';
+      updatePackCost();
       $('#item-form-title').textContent = 'I-edit ang item';
       $('#item-cancel').hidden = false;
       itemForm.scrollIntoView({ behavior: 'smooth' });
@@ -784,14 +809,18 @@
       var cols = line.split(line.indexOf('\t') >= 0 ? '\t' : ',').map(function (s) { return s.trim(); });
       var cost = parseFloat((cols[3] || '').replace(/[₱,\s]/g, ''));
       if (!cols[0] || !isFinite(cost)) return; // skips header rows and blanks
+      var packQty = parseFloat((cols[4] || '').replace(/[,\s]/g, ''));
+      var pack = packQty > 0 ? { packPrice: cost, packQty: packQty } : { packPrice: 0, packQty: 0 };
+      if (packQty > 0) cost = cost / packQty;
       var existing = state.items.find(function (it) { return it.name.toLowerCase() === cols[0].toLowerCase(); });
       if (existing) {
         existing.category = cols[1] || existing.category;
         existing.unit = cols[2] || existing.unit;
         existing.cost = cost;
+        Object.assign(existing, pack);
         updated++;
       } else {
-        state.items.push({ id: uid(), name: cols[0], category: cols[1] || '', unit: cols[2] || 'pc', cost: cost });
+        state.items.push(Object.assign({ id: uid(), name: cols[0], category: cols[1] || '', unit: cols[2] || 'pc', cost: cost }, pack));
         added++;
       }
     });
