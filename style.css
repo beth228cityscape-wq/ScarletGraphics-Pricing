@@ -117,3 +117,8 @@ fieldset.off .grid { opacity: .45; }
   .p3d { grid-template-columns: 1fr; }
   .p3d-result { position: static; order: -1; }
 }
+.variants { margin: 4px 0 14px; flex-wrap: wrap; }
+.variants button { flex: 1 1 auto; padding: 8px 12px; }
+.variants small { display: block; font-size: 12px; opacity: .85; }
+.variant-row input[data-variant-field="name"] { width: 220px; }
+.variants[hidden] { display: none; }

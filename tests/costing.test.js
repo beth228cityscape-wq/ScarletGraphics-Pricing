@@ -190,3 +190,21 @@ test('3D print sections can be left out', () => {
   assert.strictEqual(r.material, 52);
   assert.strictEqual(r.price, 52);
 });
+
+const { computeVariantOrder } = require('../costing.js');
+const cards = { pricing: 'variants', packSize: 100, variants: [
+  { name: 'Single Face', price: 350 }, { name: 'Double Face', price: 450 }, { name: 'Laminated', price: 650 }
+] };
+
+test('variant pricing is price per pack times number of packs', () => {
+  const r = computeVariantOrder(cards, { variant: 1, sets: 3 });
+  assert.strictEqual(r.pieces, 300);
+  assert.strictEqual(r.total, 1350);
+  assert.strictEqual(computeVariantOrder(cards, { variant: 2, sets: 1 }).total, 650);
+});
+
+test('variant price can be overridden for a discount', () => {
+  const r = computeVariantOrder(cards, { variant: 0, sets: 2, price: 300 });
+  assert.strictEqual(r.total, 600);
+  assert.strictEqual(r.discount, 100);
+});

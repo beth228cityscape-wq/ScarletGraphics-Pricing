@@ -241,6 +241,29 @@
     };
   }
 
+  // Price an order of a product sold in packs with variants (e.g. business
+  // cards: ₱350 per 100 pcs single face). order: { variant, sets, price };
+  // order.price overrides the variant's price per pack (for discounts).
+  function computeVariantOrder(product, order) {
+    order = order || {};
+    var v = (product.variants || [])[num(order.variant)] || null;
+    var sets = order.sets == null || order.sets === '' ? 1 : num(order.sets);
+    var regular = v ? num(v.price) : 0;
+    var price = order.price == null || order.price === '' ? regular : num(order.price);
+    var packSize = num(product.packSize) || 1;
+    return {
+      variant: v,
+      sets: sets,
+      packSize: packSize,
+      pieces: sets * packSize,
+      regularPrice: regular,
+      price: price,
+      total: round2(price * sets),
+      discount: round2((regular - price) * sets),
+      perPiece: round2(price / packSize * 100) / 100
+    };
+  }
+
   // Length units in feet, for rolls measured in mixed units (e.g. 4.5 ft x 50 m).
   var FEET_PER = { ft: 1, m: 3.28084, in: 1 / 12, cm: 0.0328084, yd: 3 };
 
@@ -253,6 +276,7 @@
   var api = {
     rollArea: rollArea,
     compute3dPrint: compute3dPrint,
+    computeVariantOrder: computeVariantOrder,
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
     computeTierOrder: computeTierOrder, computeSizeOrder: computeSizeOrder, sizePrice: sizePrice, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };

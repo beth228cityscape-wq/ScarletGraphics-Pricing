@@ -13,11 +13,16 @@
       { w: 3, h: 5, price: 2.75 }, { w: 4, h: 4, price: 3 }, { w: 4, h: 5, price: 3.5 },
       { w: 5, h: 5, price: 4.5 }
     ] },
-    { id: 'mug', name: 'Mug', pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 }
+    { id: 'mug', name: 'Mug', pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 },
+    { id: 'business-cards', name: 'Business Cards', pricing: 'variants', packSize: 100, variants: [
+      { name: 'Single Face', price: 350 }, { name: 'Double Face', price: 450 },
+      { name: 'Laminated (Matte or Glossy)', price: 650 }
+    ] }
   ];
   var TIER_LABEL = 'Per piece (by quantity)';
   var SCALE_LABEL = 'Per piece (sliding price)';
   var SIZES_LABEL = 'Per piece by size (bulk list)';
+  var VARIANTS_LABEL = 'Per pack, with variants';
   var AREA = {
     sqft: { dim: 'ft', area: 'sq ft', label: 'Per sq ft' },
     sqin: { dim: 'in', area: 'sq in', label: 'Per sq inch' }
@@ -86,11 +91,12 @@
   function isTier(p) { return !!(p && p.pricing === 'tier'); }
   function isScale(p) { return !!(p && p.pricing === 'scale'); }
   function isSizes(p) { return !!(p && p.pricing === 'sizes'); }
-  function isPiece(p) { return isTier(p) || isScale(p) || isSizes(p); }
+  function isVariants(p) { return !!(p && p.pricing === 'variants'); }
+  function isPiece(p) { return isTier(p) || isScale(p) || isSizes(p) || isVariants(p); }
   function isCategory(p) { return isArea(p) || isPiece(p); }
 
   function pricingLabel(p) {
-    return isTier(p) ? TIER_LABEL : isScale(p) ? SCALE_LABEL : isSizes(p) ? SIZES_LABEL : AREA[p.pricing].label;
+    return isTier(p) ? TIER_LABEL : isScale(p) ? SCALE_LABEL : isSizes(p) ? SIZES_LABEL : isVariants(p) ? VARIANTS_LABEL : AREA[p.pricing].label;
   }
 
   // "1-12 pcs: ₱150 · 13-24 pcs: ₱100 · 25+ pcs: ₱80"
@@ -101,6 +107,10 @@
   }
 
   function tierSummary(p) {
+    if (isVariants(p)) {
+      return (p.variants || []).map(function (v) { return v.name + ' ' + peso.format(v.price); }).join(' · ') +
+        ' per ' + fmt(p.packSize) + ' pcs';
+    }
     if (isSizes(p)) {
       return (p.sizes || []).length + ' sizes, bulk price from ' + fmt(p.bulkQty) + ' pcs, minimum order ' +
         peso.format(p.minOrder || 0) + (p.ratePerSqft ? ', small orders ' + unitMoney(p.ratePerSqft) + ' per sq in' : '');
@@ -375,7 +385,7 @@
 
   function applyPricingMode() {
     var a = AREA[productForm.pricing.value];
-    productForm.dataset.pricing = a ? 'area' : /^(tier|scale|sizes)$/.test(productForm.pricing.value) ? 'tier' : 'unit';
+    productForm.dataset.pricing = a ? 'area' : /^(tier|scale|sizes|variants)$/.test(productForm.pricing.value) ? 'tier' : 'unit';
     $('.unit-word').textContent = a ? a.area : 'piece';
     productForm.querySelectorAll('.area-word').forEach(function (el) { el.textContent = a ? a.area : ''; });
     productForm.querySelectorAll('.dim-word').forEach(function (el) { el.textContent = a ? a.dim : ''; });
@@ -438,7 +448,7 @@
 
     var qty = Math.max(1, parseInt($('#order-qty').value, 10) || 1);
     var out;
-    if (isSizes(editingProduct)) {
+    if (isSizes(editingProduct) || isVariants(editingProduct)) {
       out = [['Price', 'Use the Price Calculator']];
     } else if (tier) {
       out = tierOrderRows(editingProduct, { qty: qty });
@@ -500,6 +510,19 @@
     return out;
   }
 
+  function variantOrderRows(product, order) {
+    var o = Costing.computeVariantOrder(product, order);
+    if (!o.variant) return [['No price yet', 'Set it in Settings']];
+    var out = [
+      [esc(o.variant.name), peso.format(o.regularPrice) + ' per ' + fmt(o.packSize) + ' pcs'],
+      ['Quantity', fmt(o.sets) + ' × ' + fmt(o.packSize) + ' = ' + fmt(o.pieces) + ' pcs']
+    ];
+    if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' per ' + fmt(o.packSize) + ' pcs)', '−' + peso.format(o.discount), 'discount']);
+    if (o.discount < 0) out.push(['Surcharge (' + peso.format(o.price) + ' per ' + fmt(o.packSize) + ' pcs)', '+' + peso.format(-o.discount)]);
+    out.push(['Total (' + fmt(o.pieces) + ' pcs)', peso.format(o.total), 'total']);
+    return out;
+  }
+
   function sizeOrderRows(product, order) {
     var o = Costing.computeSizeOrder(product, state.items, order);
     if (!o.mode) {
@@ -544,6 +567,7 @@
   // ---------- Price Calculator ----------
   var calcDims = {}; // last width/height typed per category
   var calcRateTouched = false; // true once the rate is typed in (a discount)
+  var calcVariant = 0; // variant picked for a per-pack category
 
   function renderCalc(resetRate) {
     var cats = areaProducts();
@@ -551,6 +575,7 @@
     calcId = p.id;
     if (resetRate) calcRateTouched = false;
     var sizes = isSizes(p);
+    var variants = isVariants(p);
     var tier = isPiece(p) && !sizes;
     var a = sizes ? AREA.sqin : AREA[p.pricing];
     var qty = Math.max(1, parseInt($('#calc-qty').value, 10) || 1);
@@ -561,7 +586,25 @@
       $(sel).closest('label').style.display = tier ? 'none' : '';
     });
     document.querySelectorAll('.calc-dim').forEach(function (el) { el.textContent = a ? a.dim : ''; });
-    $('#calc-rate-label').textContent = tier ? 'Price per piece' : sizes ? 'Small-order price per sq in (optional)' : 'Price per ' + a.area;
+    $('#calc-variants').hidden = !variants;
+    $('#calc-qty-label').textContent = variants ? 'Number of sets (' + fmt(p.packSize) + ' pcs each)' : 'Quantity (pcs)';
+    $('#calc-rate-label').textContent = variants ? 'Price per ' + fmt(p.packSize) + ' pcs' : tier ? 'Price per piece' : sizes ? 'Small-order price per sq in (optional)' : 'Price per ' + a.area;
+
+    if (variants) {
+      var vs = p.variants || [];
+      if (calcVariant >= vs.length) calcVariant = 0;
+      $('#calc-variants').innerHTML = vs.map(function (v, i) {
+        return '<button type="button" role="radio" aria-checked="' + (i === calcVariant) + '" data-variant="' + i + '"' +
+          (i === calcVariant ? ' class="active"' : '') + '>' + esc(v.name) + '<small>' + peso.format(v.price) + '</small></button>';
+      }).join('');
+      var vo = Costing.computeVariantOrder(p, { variant: calcVariant, sets: qty });
+      if (!calcRateTouched) $('#calc-rate').value = vo.regularPrice;
+      $('#calc-note').textContent = vs.length
+        ? 'Prices are per ' + fmt(p.packSize) + ' pcs. Change them in Settings.'
+        : p.name + ' has no price yet. Set it in Settings first.';
+      $('#calc-total').innerHTML = rowsHtml(variantOrderRows(p, { variant: calcVariant, sets: qty, price: $('#calc-rate').value }));
+      return;
+    }
 
     if (sizes) {
       if (!calcRateTouched) $('#calc-rate').value = p.ratePerSqft || '';
@@ -596,12 +639,20 @@
   function selectCalc(id) {
     calcDims[calcId] = [$('#calc-width').value, $('#calc-height').value];
     calcId = id;
+    calcVariant = 0;
     var p = findProduct(id);
     var dims = calcDims[id] || (p.pricing === 'sqin' || p.pricing === 'sizes' ? ['2', '2'] : p.pricing === 'sqft' ? ['4', '4'] : ['', '']);
     $('#calc-width').value = dims[0];
     $('#calc-height').value = dims[1];
     renderCalc(true);
   }
+
+  $('#calc-variants').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-variant]');
+    if (!btn) return;
+    calcVariant = +btn.dataset.variant;
+    renderCalc(true);
+  });
 
   $('#calc-categories').addEventListener('click', function (e) {
     var id = e.target.dataset.cat;
@@ -718,12 +769,21 @@
 
   function renderPriceConfig() {
     $('#price-config-rows').innerHTML = areaProducts().map(function (p) {
-      var labels = Object.keys(AREA).map(function (k) { return [k, AREA[k].label]; }).concat([['tier', TIER_LABEL], ['scale', SCALE_LABEL], ['sizes', SIZES_LABEL]]);
+      var labels = Object.keys(AREA).map(function (k) { return [k, AREA[k].label]; }).concat([['tier', TIER_LABEL], ['scale', SCALE_LABEL], ['sizes', SIZES_LABEL], ['variants', VARIANTS_LABEL]]);
       var unitSel = '<select data-field="pricing">' + labels.map(function (l) {
         return '<option value="' + l[0] + '"' + (l[0] === p.pricing ? ' selected' : '') + '>' + l[1] + '</option>';
       }).join('') + '</select>';
       var name = isBuiltin(p.id) ? esc(p.name) : '<input data-field="name" value="' + esc(p.name) + '" required>';
-      var priceCells = isSizes(p)
+      var priceCells = isVariants(p)
+        ? '<td colspan="2"><div class="sizes-config">' +
+            '<div class="scale"><span>Prices per</span><input data-field="packSize" type="number" min="1" step="1" value="' + (p.packSize || 1) + '" aria-label="Pieces per set"><span>pcs</span></div>' +
+            '<div class="tiers">' + (p.variants || []).map(function (v, i) {
+              return '<div class="variant-row tier"><input data-variant-field="name" value="' + esc(v.name) + '" aria-label="Variant name">' +
+                '<span>₱</span><input data-variant-field="price" type="number" min="0" step="0.01" value="' + v.price + '" aria-label="Price">' +
+                '<button type="button" class="danger" data-remove-variant="' + i + '" aria-label="Remove">✕</button></div>';
+            }).join('') + '<button type="button" data-add-variant>+ Variant</button></div>' +
+          '</div></td>'
+        : isSizes(p)
         ? '<td colspan="2"><div class="sizes-config">' +
             '<div class="scale"><span>Bulk price from</span><input data-field="bulkQty" type="number" min="1" step="1" value="' + (p.bulkQty || 0) + '" aria-label="Bulk from how many pieces"><span>pcs. Below that, minimum order ₱</span>' +
             '<input data-field="minOrder" type="number" min="0" step="1" value="' + (p.minOrder || 0) + '" aria-label="Minimum order"></div>' +
@@ -780,6 +840,15 @@
         var f = el.dataset.field;
         p[f] = f === 'name' ? (el.value.trim() || p.name) : f === 'pricing' ? el.value : (parseFloat(el.value) || 0);
       });
+      if (isVariants(p)) {
+        p.variants = Array.prototype.map.call(tr.querySelectorAll('.variant-row'), function (row) {
+          return {
+            name: row.querySelector('[data-variant-field="name"]').value.trim(),
+            price: parseFloat(row.querySelector('[data-variant-field="price"]').value) || 0
+          };
+        }).filter(function (v) { return v.name; });
+        return;
+      }
       if (isSizes(p)) {
         p.sizes = Array.prototype.map.call(tr.querySelectorAll('.size-row'), function (row) {
           var v = function (f) { return parseFloat(row.querySelector('[data-size-field="' + f + '"]').value) || 0; };
@@ -909,6 +978,19 @@
   $('#price-config-rows').addEventListener('click', function (e) {
     var tr = e.target.closest('tr');
     var ds = e.target.dataset;
+    if (tr && (ds.removeVariant !== undefined || ds.addVariant !== undefined)) {
+      readPriceConfig();
+      var vp = findProduct(tr.dataset.id);
+      vp.variants = vp.variants || [];
+      if (ds.addVariant !== undefined) vp.variants.push({ name: 'New variant', price: 0 });
+      else vp.variants.splice(+ds.removeVariant, 1);
+      renderPriceConfig();
+      if (ds.addVariant !== undefined) {
+        var ns = $('#price-config-rows tr[data-id="' + vp.id + '"]').querySelectorAll('[data-variant-field="name"]');
+        ns[ns.length - 1].select();
+      }
+      return;
+    }
     if (tr && (ds.removeSize !== undefined || ds.addSize !== undefined || ds.importSizes !== undefined)) {
       readPriceConfig();
       var sp = findProduct(tr.dataset.id);
