@@ -93,7 +93,51 @@
     };
   }
 
-  var api = { computeProduct: computeProduct, computeSqftOrder: computeSqftOrder, round2: round2 };
+  // Sorted price tiers: [{ minQty, price }] from the lowest quantity up.
+  function sortedTiers(product) {
+    return (product.tiers || [])
+      .map(function (t) { return { minQty: Math.max(1, Math.floor(num(t.minQty))), price: num(t.price) }; })
+      .sort(function (a, b) { return a.minQty - b.minQty; });
+  }
+
+  // The tier that applies to qty: the one with the highest minQty not above qty.
+  function tierFor(product, qty) {
+    var tiers = sortedTiers(product);
+    var match = tiers[0] || null;
+    tiers.forEach(function (t) { if (t.minQty <= qty) match = t; });
+    return match;
+  }
+
+  // Price an order of a product whose price per piece depends on quantity
+  // (e.g. mugs: 1-12 pcs ₱150, 13-24 ₱100, 25+ ₱80). order: { qty, price };
+  // order.price overrides the tier price (for discounts) when given.
+  function computeTierOrder(product, items, order) {
+    order = order || {};
+    var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
+    var tier = tierFor(product, qty);
+    var regular = tier ? tier.price : 0;
+    var price = order.price == null || order.price === '' ? regular : num(order.price);
+    var total = price * qty;
+    var unitCost = computeProduct(product, items).totalCost;
+    var cost = unitCost * qty;
+    return {
+      qty: qty,
+      tier: tier,
+      regularPrice: regular,
+      price: price,
+      total: round2(total),
+      discount: round2((regular - price) * qty),
+      unitCost: unitCost,
+      cost: round2(cost),
+      profit: round2(total - cost),
+      marginPct: total > 0 ? round2((total - cost) / total * 100) : 0
+    };
+  }
+
+  var api = {
+    computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
+    computeTierOrder: computeTierOrder, sortedTiers: sortedTiers, round2: round2
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Costing = api;
 })(this);

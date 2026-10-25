@@ -62,7 +62,8 @@ td.num input { width: 80px; text-align: right; }
 .order-total .total { font-size: 18px; font-weight: 700; color: var(--red); }
 .order-total .discount { color: #1a7f37; }
 .order-total .minimum { color: #b25e00; font-weight: 600; }
-form[data-pricing="unit"] .area-only, form[data-pricing="area"] .unit-only { display: none; }
+form[data-pricing="unit"] .area-only, form[data-pricing="area"] .unit-only,
+form[data-pricing="tier"] .area-only, form[data-pricing="tier"] .unit-only { display: none; }
 .msg { color: var(--muted); }
 @media (max-width: 760px) {
   .split { grid-template-columns: 1fr; }
@@ -78,3 +79,6 @@ form[data-pricing="unit"] .area-only, form[data-pricing="area"] .unit-only { dis
 #price-config-rows input { max-width: 120px; text-align: right; }
 #price-config-rows input[data-field="name"] { max-width: none; text-align: left; }
 #price-config-rows select { max-width: 150px; }
+.tiers { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.tier { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+#price-config-rows .tier input { width: 80px; }

@@ -82,3 +82,21 @@ test('per sq inch pricing uses the same width x height x rate formula', () => {
   assert.strictEqual(r.pricePerPiece, 20);
   assert.strictEqual(r.total, 200);
 });
+
+const { computeTierOrder } = require('../costing.js');
+const mug = { pricing: 'tier', tiers: [{ minQty: 25, price: 80 }, { minQty: 1, price: 150 }, { minQty: 13, price: 100 }] };
+
+test('tier pricing picks the price for the quantity', () => {
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 1 }).total, 150);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 12 }).total, 1800);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 13 }).total, 1300);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 24 }).price, 100);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 25 }).total, 2000);
+  assert.strictEqual(computeTierOrder(mug, items, { qty: 100 }).price, 80);
+});
+
+test('tier price can be overridden for a discount', () => {
+  const r = computeTierOrder(mug, items, { qty: 10, price: 130 });
+  assert.strictEqual(r.total, 1300);
+  assert.strictEqual(r.discount, 200);
+});
