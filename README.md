@@ -1,4 +1,4 @@
-# Scarlet Graphics - Price Calculator
+# Scarlet Graphics - Price Calculator (Beta ver 1.0)
 
 Simpleng app para sa listahan ng items/materials at products, at para ma-compute ang costing at selling price.
 

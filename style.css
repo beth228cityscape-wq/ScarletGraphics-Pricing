@@ -125,3 +125,4 @@ fieldset.off .grid { opacity: .45; }
 #calc-addon-wrap { margin-top: 12px; }
 #calc-addon-wrap[hidden] { display: none; }
 #price-config-rows .add-on input[data-field="addOnName"] { width: 160px; }
+h1 .version { font-size: 0.75em; font-weight: 400; opacity: 0.85; white-space: nowrap; }
