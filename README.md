@@ -8,6 +8,7 @@ Buksan lang ang `index.html` sa browser (walang kailangang i-install). Pwede rin
 
 1. **Price Calculator**: pumili ng category (hal. **Tarpaulin** per sq ft, **Sticker** per sq inch), ilagay ang lapad, haba at ilang piraso. Halimbawa: sticker 2 × 2 in = 4 sq in × presyo per sq in. Pwedeng palitan ang presyo sa calculator mismo para sa discount. May minimum na presyo kada piraso (Tarpaulin: ₱200).
    **Sticker**: i-type ang lapad at haba (in); kusang hahanapin ang size sa listahan (hal. 2 × 3 in = ₱1.50/pc). Mula 1,000 pcs, bulk price ang presyo. Kapag kulang sa 1,000, bulk price + small-order fee na ₱500 na lumiliit habang dumarami (wala na sa 1,000 pcs), kaya hindi bababa sa ₱500 ang order at hindi kailanman mas mahal ang mas kaunti. Optional ang presyo per sq inch para sa isa o kaunting piraso; ginagamit lang ito kapag mas mura.
+   **Sintra Board**: lapad × haba (in) × ₱1.80/sq in hanggang A2 (16.5 × 23.4 in), ₱1.50/sq in kapag mas malaki sa A2 pero hindi bababa sa presyo ng A2, at minimum ₱200 kada piraso.
    **Business Cards**: presyo kada 100 pcs, pumili ng variant: Single Face ₱350, Double Face ₱450, Laminated (Matte o Glossy) ₱650. Ilagay kung ilang set ng 100. Mapapalitan o madadagdagan ang variants sa Settings.
    May category din na **depende sa dami** ang presyo kada piraso:
    - **Pababa ang presyo** (hal. **Mug**): ₱150 sa 1 pc, bumababa nang pantay bawat dagdag na piraso hanggang ₱80 mula 24 pcs. Hindi kailanman mas mahal ang mas kaunting order kaysa mas marami.

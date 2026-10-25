@@ -208,3 +208,29 @@ test('variant price can be overridden for a discount', () => {
   assert.strictEqual(r.total, 600);
   assert.strictEqual(r.discount, 100);
 });
+
+const { computeAreaTierOrder } = require('../costing.js');
+const sintra = { pricing: 'areaTiers', minPrice: 200, areaTiers: [{ minArea: 0, rate: 1.8 }, { minArea: 386.1, rate: 1.5 }] };
+
+test('sintra: ₱1.80/sq in up to A2 with a ₱200 minimum', () => {
+  assert.strictEqual(computeAreaTierOrder(sintra, { width: 8, height: 10 }).total, 200);
+  assert.strictEqual(computeAreaTierOrder(sintra, { width: 11.7, height: 16.5 }).total, 347.49);
+  assert.strictEqual(computeAreaTierOrder(sintra, { width: 16.5, height: 23.4 }).total, 694.98);
+});
+
+test('sintra: ₱1.50/sq in above A2, never cheaper than A2', () => {
+  assert.strictEqual(computeAreaTierOrder(sintra, { width: 17, height: 24 }).total, 694.98);
+  assert.strictEqual(computeAreaTierOrder(sintra, { width: 24, height: 36, qty: 2 }).total, 2592);
+  let prev = 0;
+  for (let w = 1; w <= 40; w += 0.5) {
+    const t = computeAreaTierOrder(sintra, { width: w, height: w }).total;
+    assert.ok(t >= prev, w + ' in');
+    prev = t;
+  }
+});
+
+test('sintra rate can be overridden for a discount', () => {
+  const r = computeAreaTierOrder(sintra, { width: 24, height: 36, rate: 1.4 });
+  assert.strictEqual(r.total, 1209.6);
+  assert.strictEqual(r.discount, 86.4);
+});

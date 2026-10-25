@@ -264,6 +264,49 @@
     };
   }
 
+  // Price per piece by area, with a cheaper rate for bigger pieces (e.g. sintra
+  // board: ₱1.80/sq in up to A2, ₱1.50/sq in above). product.areaTiers is
+  // [{ minArea, rate }] in sq in; product.minPrice is the lowest price per
+  // piece. A piece just above a bracket never costs less than the biggest
+  // piece of the bracket below. order: { width, height, qty, rate } in inches;
+  // order.rate overrides the bracket rate (for discounts).
+  function computeAreaTierOrder(product, order) {
+    order = order || {};
+    var area = num(order.width) * num(order.height);
+    var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
+    var tiers = (product.areaTiers || [])
+      .map(function (t) { return { minArea: num(t.minArea), rate: num(t.rate) }; })
+      .sort(function (a, b) { return a.minArea - b.minArea; });
+    var i = -1;
+    tiers.forEach(function (t, k) { if (t.minArea <= area) i = k; });
+    if (i < 0 && tiers.length) i = 0;
+    var tier = tiers[i] || null;
+    var minPrice = num(product.minPrice);
+    var bracketFloor = i > 0 ? tiers[i].minArea * tiers[i - 1].rate : 0;
+
+    function piece(rate, floor) { return Math.max(area * rate, floor, minPrice); }
+    var regularRate = tier ? tier.rate : 0;
+    var regularPiece = piece(regularRate, bracketFloor);
+    var overridden = !(order.rate == null || order.rate === '');
+    var rate = overridden ? num(order.rate) : regularRate;
+    var perPiece = overridden ? piece(rate, 0) : regularPiece;
+    return {
+      area: round2(area),
+      qty: qty,
+      tier: tier,
+      tierIndex: i,
+      regularRate: regularRate,
+      rate: rate,
+      computedPerPiece: round2(area * rate),
+      minApplied: area * rate < minPrice && perPiece === minPrice,
+      bracketFloorApplied: !overridden && bracketFloor > area * rate && bracketFloor >= minPrice,
+      bracketFloor: round2(bracketFloor),
+      pricePerPiece: round2(perPiece),
+      total: round2(perPiece * qty),
+      discount: round2((regularPiece - perPiece) * qty)
+    };
+  }
+
   // Length units in feet, for rolls measured in mixed units (e.g. 4.5 ft x 50 m).
   var FEET_PER = { ft: 1, m: 3.28084, in: 1 / 12, cm: 0.0328084, yd: 3 };
 
@@ -277,6 +320,7 @@
     rollArea: rollArea,
     compute3dPrint: compute3dPrint,
     computeVariantOrder: computeVariantOrder,
+    computeAreaTierOrder: computeAreaTierOrder,
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
     computeTierOrder: computeTierOrder, computeSizeOrder: computeSizeOrder, sizePrice: sizePrice, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };
