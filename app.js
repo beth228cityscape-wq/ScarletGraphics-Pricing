@@ -40,6 +40,11 @@
   }
 
   function ensureBuiltins(st) {
+    // Packs are costed per pc and rolls per sq ft (items saved earlier may say otherwise).
+    st.items.forEach(function (it) {
+      if (it.rollWidth > 0 && it.rollLength > 0) it.unit = 'sq ft';
+      else if (it.packQty > 0) it.unit = 'pc';
+    });
     // The first Mug used 150/100/80 tiers, which made 12 pcs cost more than 13.
     st.products.forEach(function (p) {
       if (p.id === 'mug' && p.pricing === 'tier' &&
@@ -167,7 +172,7 @@
     $('#item-rows').innerHTML = rows.map(function (it) {
       var bought = isRoll(it)
         ? peso.format(it.packPrice) + ' / ' + fmt(it.rollWidth) + ' ' + it.rollWidthUnit + ' × ' + fmt(it.rollLength) + ' ' + it.rollLengthUnit
-        : it.packQty ? peso.format(it.packPrice) + ' / ' + fmt(it.packQty) + ' ' + esc(it.unit) : '';
+        : it.packQty ? peso.format(it.packPrice) + ' / ' + fmt(it.packQty) + ' pcs' : '';
       return '<tr><td>' + esc(it.name) + (it.supplier ? '<div class="muted small">' + esc(it.supplier) + '</div>' : '') +
         '</td><td>' + esc(it.category) + '</td><td>' + esc(it.unit) +
         '</td><td class="num muted">' + bought +
@@ -229,10 +234,12 @@
 
   function updatePackCost() {
     var f = itemForm;
-    // A roll is costed per sq ft, so its unit is fixed to sq ft.
+    // Rolls are costed per sq ft and packs per pc, so their unit is fixed.
     var roll = parseFloat(f.rollWidth.value) > 0 && parseFloat(f.rollLength.value) > 0;
+    var pack = !roll && parseFloat(f.packQty.value) > 0;
     if (roll) f.unit.value = 'sq ft';
-    f.unit.readOnly = roll;
+    else if (pack) f.unit.value = 'pc';
+    f.unit.readOnly = roll || pack;
     var b = boughtAs();
     f.cost.readOnly = b !== null;
     if (b) f.cost.value = Math.round(b.cost * 10000) / 10000;
@@ -885,7 +892,7 @@
       var cost = parseFloat((cols[3] || '').replace(/[₱,\s]/g, ''));
       if (!cols[0] || !isFinite(cost)) return; // skips header rows and blanks
       var packQty = parseFloat((cols[4] || '').replace(/[,\s]/g, ''));
-      var pack = packQty > 0 ? { packPrice: cost, packQty: packQty } : { packPrice: 0, packQty: 0 };
+      var pack = packQty > 0 ? { packPrice: cost, packQty: packQty, unit: 'pc' } : { packPrice: 0, packQty: 0 };
       if (packQty > 0) cost = cost / packQty;
       var existing = state.items.find(function (it) { return it.name.toLowerCase() === cols[0].toLowerCase(); });
       if (existing) {
