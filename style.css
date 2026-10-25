@@ -122,3 +122,6 @@ fieldset.off .grid { opacity: .45; }
 .variants small { display: block; font-size: 12px; opacity: .85; }
 #price-config-rows .variant-row input[data-variant-field="name"] { width: 240px; text-align: left; }
 .variants[hidden] { display: none; }
+#calc-addon-wrap { margin-top: 12px; }
+#calc-addon-wrap[hidden] { display: none; }
+#price-config-rows .add-on input[data-field="addOnName"] { width: 160px; }

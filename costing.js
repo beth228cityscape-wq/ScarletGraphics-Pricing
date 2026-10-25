@@ -128,7 +128,9 @@
     var tier = scale ? null : tierFor(product, qty);
     var regular = scale ? scalePrice(product, qty) : tier ? tier.price : 0;
     var price = order.price == null || order.price === '' ? regular : num(order.price);
-    var total = price * qty;
+    // Optional per-piece add-on (e.g. packaging), never discounted.
+    var addOn = order.addOn ? num(product.addOnPrice) : 0;
+    var total = (price + addOn) * qty;
     var unitCost = computeProduct(product, items).totalCost;
     var cost = unitCost * qty;
     return {
@@ -137,6 +139,8 @@
       hasPrice: scale ? num(product.startPrice) > 0 || num(product.bulkPrice) > 0 : !!tier,
       regularPrice: regular,
       price: price,
+      addOnPrice: addOn,
+      addOnTotal: round2(addOn * qty),
       total: round2(total),
       discount: round2((regular - price) * qty),
       unitCost: unitCost,

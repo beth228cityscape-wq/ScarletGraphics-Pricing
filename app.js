@@ -20,6 +20,9 @@
     { id: 'business-cards', name: 'Business Cards', pricing: 'variants', packSize: 100, variants: [
       { name: 'Single Face', price: 350 }, { name: 'Double Face', price: 450 },
       { name: 'Laminated (Matte or Glossy)', price: 650 }
+    ] },
+    { id: 'button-pins', name: 'Button Pins', pricing: 'tier', size: '2.25 in (58 mm)', addOnName: 'Packaging', addOnPrice: 5, tiers: [
+      { minQty: 1, price: 30 }, { minQty: 10, price: 24 }, { minQty: 50, price: 18 }
     ] }
   ];
   var TIER_LABEL = 'Per piece (by quantity)';
@@ -528,7 +531,12 @@
     ];
     if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' per piece)', '−' + peso.format(o.discount), 'discount']);
     if (o.discount < 0) out.push(['Surcharge (' + peso.format(o.price) + ' per piece)', '+' + peso.format(-o.discount)]);
-    out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price) + ')', peso.format(o.total), 'total']);
+    if (o.addOnPrice > 0) {
+      out.push([(product.addOnName || 'Add-on') + ' (' + pcs(o.qty) + ' × ' + peso.format(o.addOnPrice) + ')', '+' + peso.format(o.addOnTotal)]);
+      out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price + o.addOnPrice) + ')', peso.format(o.total), 'total']);
+    } else {
+      out.push(['Total (' + pcs(o.qty) + ' × ' + peso.format(o.price) + ')', peso.format(o.total), 'total']);
+    }
     if (o.unitCost > 0) {
       out.push(['Cost', peso.format(o.cost)]);
       out.push(['Profit', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
@@ -632,6 +640,9 @@
     });
     document.querySelectorAll('.calc-dim').forEach(function (el) { el.textContent = a ? a.dim : ''; });
     $('#calc-variants').hidden = !variants;
+    var hasAddOn = tier && !variants && (p.addOnPrice || 0) > 0;
+    $('#calc-addon-wrap').hidden = !hasAddOn;
+    if (hasAddOn) $('#calc-addon-label').textContent = 'With ' + (p.addOnName || 'add-on').toLowerCase() + ' (+' + peso.format(p.addOnPrice) + ' per piece)';
     $('#calc-qty-label').textContent = variants ? 'Number of sets (' + fmt(p.packSize) + ' pcs each)' : 'Quantity (pcs)';
     $('#calc-rate-label').textContent = variants ? 'Price per ' + fmt(p.packSize) + ' pcs' : tier ? 'Price per piece' : areaTiers ? 'Price per sq in' : sizes ? 'Small-order price per sq in (optional)' : 'Price per ' + a.area;
 
@@ -678,9 +689,11 @@
       var t = Costing.computeTierOrder(p, state.items, { qty: qty });
       if (!calcRateTouched) $('#calc-rate').value = t.regularPrice;
       $('#calc-note').textContent = t.hasPrice
-        ? 'Set to: ' + tierSummary(p) + '. Change it in Settings.'
+        ? (p.size ? 'Size: ' + p.size + '. ' : '') + 'Set to: ' + tierSummary(p) + '. Change it in Settings.'
         : p.name + ' has no price yet. Set it in Settings first.';
-      $('#calc-total').innerHTML = rowsHtml(tierOrderRows(p, { qty: qty, price: $('#calc-rate').value }));
+      $('#calc-total').innerHTML = rowsHtml(tierOrderRows(p, {
+        qty: qty, price: $('#calc-rate').value, addOn: hasAddOn && $('#calc-addon').checked
+      }));
       return;
     }
 
@@ -716,6 +729,7 @@
     var id = e.target.dataset.cat;
     if (id && id !== calcId) selectCalc(id);
   });
+  $('#calc-addon').addEventListener('change', function () { renderCalc(false); });
   ['#calc-width', '#calc-height', '#calc-qty', '#calc-rate'].forEach(function (sel) {
     $(sel).addEventListener('input', function () {
       if (sel === '#calc-rate') calcRateTouched = $('#calc-rate').value !== '';
@@ -877,7 +891,10 @@
               '<input data-tier-field="minQty" type="number" min="1" step="1" value="' + t.minQty + '" aria-label="From how many pieces">' +
               '<span>pcs: ₱</span><input data-tier-field="price" type="number" min="0" step="0.01" value="' + t.price + '" aria-label="Price per piece">' +
               '<button type="button" class="danger" data-remove-tier="' + i + '" aria-label="Remove">✕</button></div>';
-          }).join('') + '<button type="button" data-add-tier>+ Tier</button>' + tierWarning(p) + '</div></td>'
+          }).join('') + '<button type="button" data-add-tier>+ Tier</button>' + tierWarning(p) +
+            '<div class="scale add-on"><span>Optional add-on</span><input data-field="addOnName" value="' + esc(p.addOnName || '') + '" placeholder="e.g. Packaging" aria-label="Add-on name">' +
+            '<span>₱</span><input data-field="addOnPrice" type="number" min="0" step="0.01" value="' + (p.addOnPrice || 0) + '" aria-label="Add-on price per piece"><span>per piece</span></div>' +
+          '</div></td>'
         : '<td class="num"><input data-field="ratePerSqft" type="number" step="0.01" min="0" value="' + (p.ratePerSqft || 0) + '"></td>' +
           '<td class="num"><input data-field="minPrice" type="number" step="0.01" min="0" value="' + (p.minPrice || 0) + '"></td>';
       return '<tr data-id="' + p.id + '"><td>' + name + '</td>' +
@@ -906,7 +923,7 @@
       var p = findProduct(tr.dataset.id);
       tr.querySelectorAll('[data-field]').forEach(function (el) {
         var f = el.dataset.field;
-        p[f] = f === 'name' ? (el.value.trim() || p.name) : f === 'pricing' ? el.value : (parseFloat(el.value) || 0);
+        p[f] = f === 'name' ? (el.value.trim() || p.name) : f === 'pricing' ? el.value : f === 'addOnName' ? el.value.trim() : (parseFloat(el.value) || 0);
       });
       if (isAreaTiers(p)) {
         p.areaTiers = Array.prototype.map.call(tr.querySelectorAll('.area-tier-row'), function (row) {

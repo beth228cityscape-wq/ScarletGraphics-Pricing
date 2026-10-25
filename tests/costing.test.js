@@ -242,3 +242,17 @@ test('sintra: ₱1.20 from 864 sq in and ₱1.00 from 1297 sq in, never cheaper 
   assert.strictEqual(computeAreaTierOrder(sintra, { width: 36, height: 48 }).total, 1728);
   assert.strictEqual(computeAreaTierOrder(sintra, { width: 48, height: 96 }).total, 4608);
 });
+
+const pins = { pricing: 'tier', addOnName: 'Packaging', addOnPrice: 5, tiers: [{ minQty: 1, price: 30 }, { minQty: 10, price: 24 }, { minQty: 50, price: 18 }] };
+
+test('button pins: price by quantity, packaging adds ₱5 per piece', () => {
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 9 }).total, 270);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 10 }).total, 240);
+  assert.strictEqual(computeTierOrder(pins, [], { qty: 50 }).total, 900);
+  const r = computeTierOrder(pins, [], { qty: 20, addOn: true });
+  assert.strictEqual(r.total, 580);
+  assert.strictEqual(r.addOnTotal, 100);
+  const d = computeTierOrder(pins, [], { qty: 20, price: 20, addOn: true });
+  assert.strictEqual(d.total, 500);
+  assert.strictEqual(d.discount, 80);
+});
