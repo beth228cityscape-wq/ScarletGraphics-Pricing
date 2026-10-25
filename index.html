@@ -63,9 +63,17 @@
         <form id="product-form" class="card" hidden>
           <h2 id="product-form-title">Product</h2>
           <input type="hidden" name="id">
-          <label>Pangalan<input name="name" required placeholder="hal. Tarpaulin 2x3 ft"></label>
+          <div class="grid">
+            <label>Pangalan<input name="name" required placeholder="hal. Tarpaulin"></label>
+            <label>Paano i-presyo?
+              <select name="pricing">
+                <option value="unit">Per piraso (puhunan + markup)</option>
+                <option value="sqft">Per sq ft (hal. tarpaulin)</option>
+              </select>
+            </label>
+          </div>
 
-          <h3>Materials na gagamitin</h3>
+          <h3>Materials na gagamitin <span class="sqft-only muted">(per 1 sq ft)</span></h3>
           <table>
             <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Cost/unit</th><th class="num">Total</th><th></th></tr></thead>
             <tbody id="component-rows"></tbody>
@@ -75,17 +83,22 @@
           <h3>Iba pang gastos at tubo</h3>
           <div class="grid">
             <label>Waste / sira (%)<input name="wastePct" type="number" step="0.01" min="0" value="0"></label>
-            <label>Labor (₱ per piraso)<input name="labor" type="number" step="0.01" min="0" value="0"></label>
+            <label><span>Labor (₱ per <span class="unit-word">piraso</span>)</span><input name="labor" type="number" step="0.01" min="0" value="0"></label>
             <label>Overhead (%)<input name="overheadPct" type="number" step="0.01" min="0" value="0"></label>
-            <label>Markup (%)<input name="markupPct" type="number" step="0.01" min="0" value="0"></label>
+            <label class="unit-only">Markup (%)<input name="markupPct" type="number" step="0.01" min="0" value="0"></label>
+            <label class="sqft-only">Presyo per sq ft (₱)<input name="ratePerSqft" type="number" step="0.01" min="0" value="0"></label>
           </div>
 
           <div id="breakdown" class="breakdown"></div>
 
+          <h3>Compute ng order</h3>
           <div class="qty-calc">
-            <label>Ilang piraso ang order?<input id="order-qty" type="number" min="1" value="1"></label>
-            <div id="order-total"></div>
+            <label class="sqft-only">Lapad (ft)<input id="order-width" type="number" step="any" min="0" value="4"></label>
+            <label class="sqft-only">Haba (ft)<input id="order-height" type="number" step="any" min="0" value="4"></label>
+            <label class="sqft-only">Presyo per sq ft (₱)<input id="order-rate" type="number" step="0.01" min="0"></label>
+            <label>Ilang piraso?<input id="order-qty" type="number" min="1" value="1"></label>
           </div>
+          <div id="order-total" class="order-total"></div>
 
           <div class="actions">
             <button type="submit" class="primary">I-save ang product</button>

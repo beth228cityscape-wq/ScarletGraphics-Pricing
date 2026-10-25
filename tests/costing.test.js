@@ -32,3 +32,26 @@ test('empty product prices at zero', () => {
   assert.strictEqual(r.price, 0);
   assert.strictEqual(r.marginPct, 0);
 });
+
+const { computeSqftOrder } = require('../costing.js');
+const tarp = {
+  pricing: 'sqft', ratePerSqft: 25,
+  components: [{ itemId: 'b', qty: 2 }], labor: 3 // ₱1 ink + ₱3 labor = ₱4 per sq ft
+};
+
+test('sq ft order uses width x height x rate', () => {
+  const r = computeSqftOrder(tarp, items, { width: 4, height: 4 });
+  assert.strictEqual(r.area, 16);
+  assert.strictEqual(r.total, 400);
+  assert.strictEqual(r.discount, 0);
+  assert.strictEqual(r.cost, 64);
+  assert.strictEqual(r.profit, 336);
+});
+
+test('sq ft order rate can be overridden for a discount', () => {
+  const r = computeSqftOrder(tarp, items, { width: 4, height: 4, qty: 2, rate: 20 });
+  assert.strictEqual(r.totalArea, 32);
+  assert.strictEqual(r.pricePerPiece, 320);
+  assert.strictEqual(r.total, 640);
+  assert.strictEqual(r.discount, 160);
+});

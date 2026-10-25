@@ -130,20 +130,26 @@
     $('#product-list').innerHTML = list.map(function (p) {
       var r = Costing.computeProduct(p, state.items);
       var active = editingProduct && editingProduct.id === p.id ? ' class="active"' : '';
+      var price = p.pricing === 'sqft'
+        ? 'Cost ' + peso.format(r.totalCost) + '/sq ft · <strong>' + peso.format(p.ratePerSqft || 0) + '/sq ft</strong>'
+        : 'Cost ' + peso.format(r.totalCost) + ' · <strong>' + peso.format(r.price) + '</strong>';
       return '<li' + active + ' data-id="' + p.id + '"><span>' + esc(p.name) + '</span>' +
-        '<span class="muted">Cost ' + peso.format(r.totalCost) + ' · <strong>' + peso.format(r.price) + '</strong></span></li>';
+        '<span class="muted">' + price + '</span></li>';
     }).join('');
     $('#product-empty').hidden = state.products.length > 0;
   }
 
-  function openProduct(p) {
+  function openProduct(p, keepOrder) {
     editingProduct = JSON.parse(JSON.stringify(p));
     productForm.hidden = false;
     productForm.id.value = p.id || '';
     productForm.name.value = p.name || '';
-    ['wastePct', 'labor', 'overheadPct', 'markupPct'].forEach(function (k) {
+    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft'].forEach(function (k) {
       productForm[k].value = p[k] || 0;
     });
+    productForm.pricing.value = p.pricing || 'unit';
+    if (!keepOrder) $('#order-rate').value = p.ratePerSqft || 0;
+    applyPricingMode();
     $('#product-form-title').textContent = p.id ? 'I-edit ang product' : 'Bagong product';
     $('#product-delete').hidden = !p.id;
     $('#product-duplicate').hidden = !p.id;
@@ -153,9 +159,16 @@
 
   function readProductForm() {
     editingProduct.name = productForm.name.value.trim();
-    ['wastePct', 'labor', 'overheadPct', 'markupPct'].forEach(function (k) {
+    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft'].forEach(function (k) {
       editingProduct[k] = parseFloat(productForm[k].value) || 0;
     });
+    editingProduct.pricing = productForm.pricing.value;
+  }
+
+  function applyPricingMode() {
+    var sqft = productForm.pricing.value === 'sqft';
+    productForm.dataset.pricing = sqft ? 'sqft' : 'unit';
+    $('.unit-word').textContent = sqft ? 'sq ft' : 'piraso';
   }
 
   function itemOptions(selected) {
@@ -181,18 +194,23 @@
   function renderBreakdown() {
     var r = Costing.computeProduct(editingProduct, state.items);
     var lines = r.lines;
+    var sqft = editingProduct.pricing === 'sqft';
     var rows = [
       ['Materials', r.materials],
       ['Waste (' + (editingProduct.wastePct || 0) + '%)', r.waste],
       ['Labor', r.labor],
       ['Overhead (' + (editingProduct.overheadPct || 0) + '%)', r.overhead],
-      ['Total cost (puhunan)', r.totalCost, 'subtotal'],
-      ['Markup (' + (editingProduct.markupPct || 0) + '%)', r.markup],
-      ['Selling price', r.price, 'total']
+      ['Total cost (puhunan)' + (sqft ? ' per sq ft' : ''), r.totalCost, 'subtotal']
     ];
+    if (sqft) {
+      rows.push(['Presyo per sq ft', editingProduct.ratePerSqft || 0, 'total']);
+    } else {
+      rows.push(['Markup (' + (editingProduct.markupPct || 0) + '%)', r.markup]);
+      rows.push(['Selling price', r.price, 'total']);
+    }
     $('#breakdown').innerHTML = rows.map(function (row) {
       return '<div class="' + (row[2] || '') + '"><span>' + row[0] + '</span><span>' + peso.format(row[1]) + '</span></div>';
-    }).join('') + '<p class="muted">Tubo: ' + peso.format(r.profit) + ' kada piraso · Margin ' + r.marginPct + '%</p>';
+    }).join('') + (sqft ? '' : '<p class="muted">Tubo: ' + peso.format(r.profit) + ' kada piraso · Margin ' + r.marginPct + '%</p>');
 
     // Keep the cost and total cells in the component table in sync without re-rendering inputs.
     document.querySelectorAll('#component-rows tr').forEach(function (tr, i) {
@@ -204,12 +222,39 @@
     });
 
     var qty = Math.max(1, parseInt($('#order-qty').value, 10) || 1);
-    $('#order-total').innerHTML = qty + ' pcs → Cost ' + peso.format(r.totalCost * qty) +
-      ' · <strong>Presyo ' + peso.format(r.price * qty) + '</strong> · Tubo ' + peso.format(r.profit * qty);
+    var out;
+    if (sqft) {
+      var o = Costing.computeSqftOrder(editingProduct, state.items, {
+        width: $('#order-width').value, height: $('#order-height').value,
+        qty: qty, rate: $('#order-rate').value
+      });
+      out = [
+        ['Sukat', fmt($('#order-width').value) + ' × ' + fmt($('#order-height').value) + ' ft = ' + fmt(o.area) + ' sq ft'],
+        ['Kada piraso', fmt(o.area) + ' sq ft × ' + peso.format(o.rate) + ' = ' + peso.format(o.pricePerPiece)]
+      ];
+      if (o.discount > 0) out.push(['Discount (mula ' + peso.format(o.baseRate) + '/sq ft)', '−' + peso.format(o.discount), 'discount']);
+      if (o.discount < 0) out.push(['Dagdag (mula ' + peso.format(o.baseRate) + '/sq ft)', '+' + peso.format(-o.discount)]);
+      out.push(['Total (' + qty + ' pcs)', peso.format(o.total), 'total']);
+      out.push(['Puhunan', peso.format(o.cost)]);
+      out.push(['Tubo', peso.format(o.profit) + ' (' + o.marginPct + '%)']);
+    } else {
+      out = [
+        ['Total (' + qty + ' pcs)', peso.format(r.price * qty), 'total'],
+        ['Puhunan', peso.format(r.totalCost * qty)],
+        ['Tubo', peso.format(r.profit * qty)]
+      ];
+    }
+    $('#order-total').innerHTML = out.map(function (row) {
+      return '<div class="' + (row[2] || '') + '"><span>' + row[0] + '</span><span>' + row[1] + '</span></div>';
+    }).join('');
+  }
+
+  function fmt(n) {
+    return (Math.round((parseFloat(n) || 0) * 100) / 100).toLocaleString('en-PH');
   }
 
   $('#product-new').addEventListener('click', function () {
-    openProduct({ name: '', components: [{ itemId: '', qty: 1 }], wastePct: 0, labor: 0, overheadPct: 0, markupPct: 0 });
+    openProduct({ name: '', pricing: 'unit', components: [{ itemId: '', qty: 1 }], wastePct: 0, labor: 0, overheadPct: 0, markupPct: 0, ratePerSqft: 0 });
     productForm.name.focus();
   });
 
@@ -241,11 +286,21 @@
   });
 
   productForm.addEventListener('input', function (e) {
-    if (e.target.closest('#component-rows')) return;
+    if (e.target.closest('#component-rows') || e.target.closest('.qty-calc')) return;
+    // Keep the order rate in step with the product rate until the user types a discount.
+    if (e.target.name === 'ratePerSqft' && parseFloat($('#order-rate').value) === editingProduct.ratePerSqft) {
+      $('#order-rate').value = e.target.value;
+    }
     readProductForm();
+    applyPricingMode();
     renderBreakdown();
   });
-  $('#order-qty').addEventListener('input', renderBreakdown);
+  productForm.addEventListener('change', function (e) {
+    if (e.target.name === 'pricing') { readProductForm(); applyPricingMode(); renderBreakdown(); }
+  });
+  ['#order-qty', '#order-width', '#order-height', '#order-rate'].forEach(function (sel) {
+    $(sel).addEventListener('input', renderBreakdown);
+  });
 
   productForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -258,7 +313,7 @@
     var idx = state.products.findIndex(function (x) { return x.id === p.id; });
     if (idx >= 0) state.products[idx] = p; else state.products.push(p);
     save();
-    openProduct(p);
+    openProduct(p, true);
   });
 
   $('#product-duplicate').addEventListener('click', function () {
@@ -318,10 +373,15 @@
   }
 
   $('#export-csv').addEventListener('click', function () {
-    var header = ['Product', 'Materials', 'Waste', 'Labor', 'Overhead', 'Total cost', 'Markup', 'Selling price', 'Margin %'];
+    var header = ['Product', 'Pricing', 'Materials', 'Waste', 'Labor', 'Overhead', 'Total cost', 'Markup', 'Selling price', 'Margin %'];
     var rows = state.products.map(function (p) {
       var r = Costing.computeProduct(p, state.items);
-      return [p.name, r.materials, r.waste, r.labor, r.overhead, r.totalCost, r.markup, r.price, r.marginPct];
+      if (p.pricing === 'sqft') {
+        var rate = p.ratePerSqft || 0;
+        var margin = rate > 0 ? Costing.round2((rate - r.totalCost) / rate * 100) : 0;
+        return [p.name, 'per sq ft', r.materials, r.waste, r.labor, r.overhead, r.totalCost, '', rate, margin];
+      }
+      return [p.name, 'per piraso', r.materials, r.waste, r.labor, r.overhead, r.totalCost, r.markup, r.price, r.marginPct];
     });
     var csv = [header].concat(rows).map(function (r) { return r.map(csvCell).join(','); }).join('\n');
     download('scarlet-costing.csv', csv, 'text/csv');
