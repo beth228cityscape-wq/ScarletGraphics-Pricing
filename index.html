@@ -143,6 +143,11 @@
           <button type="button" id="category-add">+ Bagong category</button>
         </div>
         <p id="price-config-msg" class="msg"></p>
+
+        <h3>Mag-import ng categories mula sa Excel / Google Sheets</h3>
+        <p class="muted small">Columns: <code>Category, Sukat (sq ft o sq in), Presyo, Minimum</code>. I-select ang rows sa Excel, copy, at i-paste dito. Kapag may category nang ganoong pangalan, papalitan lang ang presyo nito.</p>
+        <textarea id="paste-categories" rows="5" placeholder="Tarpaulin	sq ft	25	200&#10;Vinyl sticker decal	sq in	8	50"></textarea>
+        <div class="actions"><button type="button" id="paste-categories-import" class="primary">I-import ang categories</button></div>
       </form>
 
       <div class="card">

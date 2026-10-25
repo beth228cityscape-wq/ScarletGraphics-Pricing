@@ -412,6 +412,52 @@
     if (inputs.length) { inputs[inputs.length - 1].focus(); inputs[inputs.length - 1].select(); }
   });
 
+  // "sq ft", "sqft", "ft", "per sq ft" -> sqft; anything with "in" -> sqin.
+  function parseAreaUnit(text) {
+    var t = (text || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (/ft|feet|foot/.test(t)) return 'sqft';
+    if (/in/.test(t)) return 'sqin';
+    return null;
+  }
+
+  function parseMoney(text) {
+    var n = parseFloat(String(text || '').replace(/[₱,\s]/g, ''));
+    return isFinite(n) ? n : null;
+  }
+
+  $('#paste-categories-import').addEventListener('click', function () {
+    var text = $('#paste-categories').value.trim();
+    if (!text) return;
+    readPriceConfig(); // keep prices typed but not yet saved
+    var added = 0, updated = 0, skipped = [];
+    text.split(/\r?\n/).forEach(function (line) {
+      if (!line.trim()) return;
+      var cols = line.split(line.indexOf('\t') >= 0 ? '\t' : ',').map(function (c) { return c.trim(); });
+      var name = cols[0], unit = parseAreaUnit(cols[1]), rate = parseMoney(cols[2]);
+      var min = parseMoney(cols[3]) || 0;
+      if (!name || !unit || rate === null) {
+        if (!/^category$/i.test(name)) skipped.push(name || line); // header row is skipped quietly
+        return;
+      }
+      var existing = areaProducts().find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); });
+      if (existing) {
+        if (!isBuiltin(existing.id)) existing.pricing = unit;
+        existing.ratePerSqft = rate;
+        existing.minPrice = min;
+        updated++;
+      } else {
+        state.products.push(blankProduct({ id: uid(), name: name, pricing: unit, ratePerSqft: rate, minPrice: min }));
+        added++;
+      }
+    });
+    save();
+    renderAll();
+    renderCalc(true);
+    $('#paste-categories').value = '';
+    $('#price-config-msg').textContent = added + ' bagong category, ' + updated + ' na-update.' +
+      (skipped.length ? ' Hindi nabasa: ' + skipped.join(', ') + ' (tingnan ang Sukat at Presyo).' : '');
+  });
+
   $('#price-config-rows').addEventListener('click', function (e) {
     var id = e.target.dataset.removeCat;
     if (!id || !confirm('Burahin ang category na ito?')) return;

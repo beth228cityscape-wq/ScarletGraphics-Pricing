@@ -7,7 +7,7 @@ Simpleng app para sa listahan ng items/materials at products, at para ma-compute
 Buksan lang ang `index.html` sa browser (walang kailangang i-install). Pwede rin itong i-host sa GitHub Pages.
 
 1. **Price Calculator**: pumili ng category (hal. **Tarpaulin** per sq ft, **Sticker** per sq inch), ilagay ang lapad, haba at ilang piraso. Halimbawa: sticker 2 × 2 in = 4 sq in × presyo per sq in. Pwedeng palitan ang presyo sa calculator mismo para sa discount. May minimum na presyo kada piraso (Tarpaulin: ₱200).
-   Sa **Settings → Presyo ng bawat category** papalitan ang presyo at minimum ng bawat category, at pwedeng magdagdag ng bagong category (per sq ft o per sq inch).
+   Sa **Settings → Presyo ng bawat category** papalitan ang presyo at minimum ng bawat category, at pwedeng magdagdag ng bagong category (per sq ft o per sq inch). Pwede ring mag-paste ng categories galing Excel/Google Sheets na may columns na `Category, Sukat (sq ft / sq in), Presyo, Minimum`.
 1. **Items / Materials**: ilista ang bawat material, unit (pc, sheet, sqft, ml...) at cost per unit.
 2. **Products**: gumawa ng product, piliin ang mga materials at quantity, tapos ilagay ang waste %, labor, overhead % at markup %.
    - **Per piraso**: selling price = puhunan + markup %.
