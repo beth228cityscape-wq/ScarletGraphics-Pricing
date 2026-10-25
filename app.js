@@ -32,7 +32,7 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var data = JSON.parse(raw);
-        return { items: data.items || [], products: data.products || [] };
+        return { items: data.items || [], products: data.products || [], print3d: data.print3d || null };
       }
     } catch (e) { /* fall through to empty state */ }
     return { items: [], products: [] };
@@ -614,6 +614,105 @@
     });
   });
 
+  // ---------- 3D printing calculator ----------
+  var P3D_DEFAULTS = {
+    filaments: [{ name: 'PLA', grams: 100, costPerKg: 1000 }],
+    hours: 5, minutes: 30,
+    includePrinter: true, kwhRate: 12, watts: 250, printerPrice: 15000, lifespanHours: 2000,
+    includeLabor: true, laborRate: 50, laborHours: 0.5,
+    includeBusiness: true, failurePct: 5, markupPct: 30
+  };
+  var P3D_NUMBERS = ['hours', 'minutes', 'kwhRate', 'watts', 'printerPrice', 'lifespanHours', 'laborRate', 'laborHours', 'failurePct', 'markupPct'];
+  var P3D_TOGGLES = ['includePrinter', 'includeLabor', 'includeBusiness'];
+  var p3dForm = $('#p3d-form');
+  var p3dView = 'internal';
+
+  function p3dJob() {
+    if (!state.print3d) state.print3d = JSON.parse(JSON.stringify(P3D_DEFAULTS));
+    return state.print3d;
+  }
+
+  function fillP3d() {
+    var job = p3dJob();
+    P3D_NUMBERS.forEach(function (k) { p3dForm[k].value = job[k] == null ? '' : job[k]; });
+    P3D_TOGGLES.forEach(function (k) { p3dForm[k].checked = !!job[k]; });
+    $('#p3d-filaments').innerHTML = job.filaments.map(function (f, i) {
+      return '<tr data-i="' + i + '">' +
+        '<td><input data-f="name" value="' + esc(f.name || '') + '" placeholder="e.g. PLA" aria-label="Filament name"></td>' +
+        '<td class="num"><input data-f="grams" type="number" min="0" step="0.1" value="' + (f.grams == null ? '' : f.grams) + '" aria-label="Weight in grams"></td>' +
+        '<td class="num"><input data-f="costPerKg" type="number" min="0" step="0.01" value="' + (f.costPerKg == null ? '' : f.costPerKg) + '" aria-label="Cost per kg"></td>' +
+        '<td>' + (job.filaments.length > 1 ? '<button type="button" class="danger" data-remove-filament="' + i + '" aria-label="Remove">✕</button>' : '') + '</td></tr>';
+    }).join('');
+    renderP3d();
+  }
+
+  function readP3d() {
+    var job = p3dJob();
+    P3D_NUMBERS.forEach(function (k) { job[k] = p3dForm[k].value === '' ? '' : parseFloat(p3dForm[k].value) || 0; });
+    P3D_TOGGLES.forEach(function (k) { job[k] = p3dForm[k].checked; });
+    job.filaments = Array.prototype.map.call($('#p3d-filaments').querySelectorAll('tr'), function (tr) {
+      var v = function (f) { return tr.querySelector('[data-f="' + f + '"]').value; };
+      return { name: v('name').trim(), grams: v('grams') === '' ? '' : parseFloat(v('grams')) || 0, costPerKg: v('costPerKg') === '' ? '' : parseFloat(v('costPerKg')) || 0 };
+    });
+  }
+
+  function renderP3d() {
+    var job = p3dJob();
+    P3D_TOGGLES.forEach(function (k) { p3dForm[k].closest('fieldset').classList.toggle('off', !job[k]); });
+    var r = Costing.compute3dPrint(job);
+    var grams = job.filaments.reduce(function (sum, f) { return sum + (parseFloat(f.grams) || 0); }, 0);
+    var time = Math.floor(r.hours) + 'h ' + Math.round((r.hours % 1) * 60) + 'm';
+    var rows;
+    if (p3dView === 'client') {
+      rows = [
+        ['Print time', time],
+        ['Material', fmt(grams) + ' g'],
+        ['Price', peso.format(r.price), 'total']
+      ];
+    } else {
+      rows = [['Material cost', peso.format(r.material)]];
+      if (job.includePrinter) {
+        rows.push(['Electricity cost', peso.format(r.electricity)]);
+        rows.push(['Printer wear and tear', peso.format(r.wear)]);
+      }
+      if (job.includeLabor) rows.push(['Labor cost', peso.format(r.labor)]);
+      rows.push(['Subtotal', peso.format(r.subtotal), 'subtotal']);
+      if (job.includeBusiness) {
+        rows.push(['Failure cost (' + fmt(job.failurePct) + '%)', peso.format(r.failure)]);
+        rows.push(['Profit (' + fmt(job.markupPct) + '%)', peso.format(r.profit)]);
+      }
+      rows.push(['Final price', peso.format(r.price), 'total']);
+    }
+    $('#p3d-total').innerHTML = rowsHtml(rows) +
+      (p3dView === 'internal' ? '<p class="muted">Print time ' + time + ' · ' + fmt(grams) + ' g of filament</p>' : '');
+  }
+
+  p3dForm.addEventListener('input', function () { readP3d(); save(); renderP3d(); });
+  p3dForm.addEventListener('change', function () { readP3d(); save(); renderP3d(); });
+  $('#p3d-add-filament').addEventListener('click', function () {
+    readP3d();
+    p3dJob().filaments.push({ name: '', grams: '', costPerKg: '' });
+    save();
+    fillP3d();
+    var names = $('#p3d-filaments').querySelectorAll('[data-f="name"]');
+    names[names.length - 1].focus();
+  });
+  $('#p3d-filaments').addEventListener('click', function (e) {
+    var i = e.target.dataset.removeFilament;
+    if (i === undefined) return;
+    readP3d();
+    p3dJob().filaments.splice(+i, 1);
+    save();
+    fillP3d();
+  });
+  document.querySelectorAll('.p3d-result [data-view]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      p3dView = btn.dataset.view;
+      document.querySelectorAll('.p3d-result [data-view]').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      renderP3d();
+    });
+  });
+
   // ---------- Settings: price per category ----------
   var priceConfig = $('#price-config');
 
@@ -963,7 +1062,7 @@
       var data = JSON.parse(text);
       if (!Array.isArray(data.items) || !Array.isArray(data.products)) throw new Error('bad file');
       askConfirm('This replaces all your current data. Continue?', function () {
-        state = ensureBuiltins({ items: data.items, products: data.products });
+        state = ensureBuiltins({ items: data.items, products: data.products, print3d: data.print3d || state.print3d });
         save();
         editingProduct = null;
         productForm.hidden = true;
@@ -1036,5 +1135,6 @@
 
   $('#calc-width').value = '4';
   $('#calc-height').value = '4';
+  fillP3d();
   renderAll();
 })();

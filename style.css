@@ -16,7 +16,7 @@ header { background: var(--red); color: #fff; padding: 14px 16px 0; }
 header h1 { margin: 0 0 10px; font-size: 20px; }
 header h1 span { font-weight: 400; opacity: .85; }
 nav { display: flex; gap: 4px; overflow-x: auto; }
-nav button { background: transparent; color: #fff; border: 0; padding: 10px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font: inherit; opacity: .85; }
+nav button { white-space: nowrap; background: transparent; color: #fff; border: 0; padding: 10px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font: inherit; opacity: .85; }
 nav button.active { background: var(--bg); color: var(--text); opacity: 1; }
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 .tab { display: none; }
@@ -99,3 +99,21 @@ h3 small { font-weight: 400; font-size: 12px; }
 .sizes-config details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .sizes-config textarea { margin: 6px 0; }
 .order-total .hint { color: var(--muted); font-size: 13px; }
+fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px 14px; margin: 16px 0 0; }
+legend { padding: 0 6px; }
+.toggle { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-weight: 600; font-size: 15px; cursor: pointer; }
+.toggle input { width: auto; accent-color: var(--red); }
+fieldset.off .grid { opacity: .45; }
+.p3d { grid-template-columns: 1fr 340px; }
+.p3d-result { position: sticky; top: 16px; }
+.p3d-filaments { margin: 8px 0; }
+.p3d-filaments td input { width: 100%; }
+.p3d-filaments td.num input { text-align: right; }
+.segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 3px; margin-bottom: 12px; }
+.segmented button { flex: 1; border: 0; background: transparent; }
+.segmented button.active { background: var(--red); color: #fff; }
+.p3d-result .breakdown { margin-top: 0; }
+@media (max-width: 760px) {
+  .p3d { grid-template-columns: 1fr; }
+  .p3d-result { position: static; order: -1; }
+}

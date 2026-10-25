@@ -11,6 +11,7 @@
     <h1>Scarlet Graphics <span>Costing</span></h1>
     <nav>
       <button data-tab="calc" class="active">Price Calculator</button>
+      <button data-tab="print3d">3D Printing</button>
       <button data-tab="items">Items / Materials</button>
       <button data-tab="products">Products</button>
       <button data-tab="settings">Settings</button>
@@ -32,6 +33,62 @@
         </div>
         <p class="muted small">Change the price here to give a discount. This does not change the price saved in Settings.</p>
         <div id="calc-total" class="order-total"></div>
+      </div>
+    </section>
+
+    <!-- 3D PRINTING -->
+    <section id="tab-print3d" class="tab">
+      <div class="split p3d">
+        <form id="p3d-form" class="card" autocomplete="off">
+          <h2>3D Printing Calculator</h2>
+
+          <h3>Material</h3>
+          <label>Material
+            <select name="material"><option value="filament">Filament</option></select>
+          </label>
+          <table class="p3d-filaments">
+            <thead><tr><th>Filament <small class="muted">(optional)</small></th><th class="num">Weight (g)</th><th class="num">Cost per kg (₱)</th><th></th></tr></thead>
+            <tbody id="p3d-filaments"></tbody>
+          </table>
+          <button type="button" id="p3d-add-filament">+ Add filament</button>
+
+          <fieldset>
+            <legend><label class="toggle"><input type="checkbox" name="includePrinter"> Printer costs</label></legend>
+            <div class="grid">
+              <label>Print time (hours)<input name="hours" type="number" min="0" step="1"></label>
+              <label>Print time (minutes)<input name="minutes" type="number" min="0" max="59" step="1"></label>
+              <label>Electricity cost (₱ per kWh)<input name="kwhRate" type="number" min="0" step="0.01"></label>
+              <label>Printer power (watts)<input name="watts" type="number" min="0" step="1"></label>
+              <label>Printer price (₱)<input name="printerPrice" type="number" min="0" step="1"></label>
+              <label>Printer lifespan (hours)<input name="lifespanHours" type="number" min="0" step="1"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><label class="toggle"><input type="checkbox" name="includeLabor"> Labor costs</label></legend>
+            <div class="grid">
+              <label>Labor rate (₱ per hour)<input name="laborRate" type="number" min="0" step="0.01"></label>
+              <label>Actual labor time (hours)<input name="laborHours" type="number" min="0" step="0.05"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend><label class="toggle"><input type="checkbox" name="includeBusiness"> Business costs</label></legend>
+            <div class="grid">
+              <label>Failure rate (%)<input name="failurePct" type="number" min="0" step="0.1"></label>
+              <label>Markup / profit (%)<input name="markupPct" type="number" min="0" step="0.1"></label>
+            </div>
+          </fieldset>
+          <p class="muted small">Your last values are kept in this browser.</p>
+        </form>
+
+        <div class="card p3d-result">
+          <div class="segmented" role="tablist">
+            <button type="button" data-view="internal" class="active">Internal costing</button>
+            <button type="button" data-view="client">Client view</button>
+          </div>
+          <div id="p3d-total" class="breakdown"></div>
+        </div>
       </div>
     </section>
 

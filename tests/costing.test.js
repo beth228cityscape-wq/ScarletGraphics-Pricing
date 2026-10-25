@@ -165,3 +165,28 @@ test('optional per sq in price is used when cheaper for small orders', () => {
 test('unknown size without a per sq in price has no price', () => {
   assert.strictEqual(computeSizeOrder(sticker, items, { width: 7, height: 7, qty: 10 }).mode, null);
 });
+
+const { compute3dPrint } = require('../costing.js');
+
+test('3D print price: material, electricity, wear, labor, failure, markup', () => {
+  const r = compute3dPrint({
+    filaments: [{ grams: 100, costPerKg: 1000 }], hours: 5, minutes: 30,
+    includePrinter: true, kwhRate: 12, watts: 250, printerPrice: 15000, lifespanHours: 2000,
+    includeLabor: true, laborRate: 50, laborHours: 0.5,
+    includeBusiness: true, failurePct: 5, markupPct: 30
+  });
+  assert.strictEqual(r.material, 100);
+  assert.strictEqual(r.electricity, 16.5);
+  assert.strictEqual(r.wear, 41.25);
+  assert.strictEqual(r.labor, 25);
+  assert.strictEqual(r.subtotal, 182.75);
+  assert.strictEqual(r.failure, 9.14);
+  assert.strictEqual(r.profit, 57.57);
+  assert.strictEqual(r.price, 249.45);
+});
+
+test('3D print sections can be left out', () => {
+  const r = compute3dPrint({ filaments: [{ grams: 50, costPerKg: 800 }, { grams: 10, costPerKg: 1200 }], hours: 2 });
+  assert.strictEqual(r.material, 52);
+  assert.strictEqual(r.price, 52);
+});

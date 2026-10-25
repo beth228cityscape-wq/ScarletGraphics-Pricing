@@ -205,6 +205,42 @@
     };
   }
 
+  // 3D print job price.
+  // job: { filaments: [{ grams, costPerKg }], hours, minutes,
+  //   includePrinter, kwhRate, watts, printerPrice, lifespanHours,
+  //   includeLabor, laborRate, laborHours,
+  //   includeBusiness, failurePct, markupPct }
+  // Failure is a % of the subtotal; markup is a % of subtotal + failure.
+  function compute3dPrint(job) {
+    job = job || {};
+    var material = (job.filaments || []).reduce(function (sum, f) {
+      return sum + num(f.grams) / 1000 * num(f.costPerKg);
+    }, 0);
+    var hours = num(job.hours) + num(job.minutes) / 60;
+    var electricity = 0, wear = 0, labor = 0, failure = 0, profit = 0;
+    if (job.includePrinter) {
+      electricity = num(job.watts) / 1000 * hours * num(job.kwhRate);
+      wear = num(job.lifespanHours) > 0 ? num(job.printerPrice) / num(job.lifespanHours) * hours : 0;
+    }
+    if (job.includeLabor) labor = num(job.laborRate) * num(job.laborHours);
+    var subtotal = material + electricity + wear + labor;
+    if (job.includeBusiness) {
+      failure = subtotal * num(job.failurePct) / 100;
+      profit = (subtotal + failure) * num(job.markupPct) / 100;
+    }
+    return {
+      hours: hours,
+      material: round2(material),
+      electricity: round2(electricity),
+      wear: round2(wear),
+      labor: round2(labor),
+      subtotal: round2(subtotal),
+      failure: round2(failure),
+      profit: round2(profit),
+      price: round2(subtotal + failure + profit)
+    };
+  }
+
   // Length units in feet, for rolls measured in mixed units (e.g. 4.5 ft x 50 m).
   var FEET_PER = { ft: 1, m: 3.28084, in: 1 / 12, cm: 0.0328084, yd: 3 };
 
@@ -216,6 +252,7 @@
 
   var api = {
     rollArea: rollArea,
+    compute3dPrint: compute3dPrint,
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
     computeTierOrder: computeTierOrder, computeSizeOrder: computeSizeOrder, sizePrice: sizePrice, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };
