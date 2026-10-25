@@ -130,3 +130,38 @@ test('roll area converts mixed units', () => {
   assert.strictEqual(round2(3600 / sqft), 4.88);
   assert.strictEqual(round2(rollArea(1, 'ft', 1, 'ft', 'sqin')), 144);
 });
+
+const { computeSizeOrder } = require('../costing.js');
+const sticker = {
+  pricing: 'sizes', bulkQty: 1000, minOrder: 500,
+  sizes: [{ w: 2, h: 2, price: 1 }, { w: 2, h: 3, price: 1.5 }, { w: 5, h: 5, price: 4.5 }]
+};
+
+test('size pricing uses the bulk price from 1000 pcs', () => {
+  const r = computeSizeOrder(sticker, items, { width: 3, height: 2, qty: 1000 });
+  assert.strictEqual(r.mode, 'bulk');
+  assert.strictEqual(r.total, 1500);
+});
+
+test('size pricing below 1000 pcs adds a shrinking fee and never drops below ₱500', () => {
+  assert.strictEqual(computeSizeOrder(sticker, items, { width: 2, height: 2, qty: 1 }).total, 500.5);
+  assert.strictEqual(computeSizeOrder(sticker, items, { width: 2, height: 2, qty: 500 }).total, 750);
+  let prev = 0;
+  for (let q = 1; q <= 1200; q++) {
+    const t = computeSizeOrder(sticker, items, { width: 5, height: 5, qty: q }).total;
+    assert.ok(t >= 500 && t > prev, q + ' pcs');
+    prev = t;
+  }
+});
+
+test('optional per sq in price is used when cheaper for small orders', () => {
+  const s2 = Object.assign({}, sticker, { ratePerSqft: 5, minPrice: 0 });
+  const r = computeSizeOrder(s2, items, { width: 2, height: 2, qty: 3 }); // 3 x 4 sq in x 5 = 60
+  assert.strictEqual(r.mode, 'retail');
+  assert.strictEqual(r.total, 60);
+  assert.strictEqual(computeSizeOrder(s2, items, { width: 2, height: 2, qty: 1000 }).mode, 'bulk');
+});
+
+test('unknown size without a per sq in price has no price', () => {
+  assert.strictEqual(computeSizeOrder(sticker, items, { width: 7, height: 7, qty: 10 }).mode, null);
+});

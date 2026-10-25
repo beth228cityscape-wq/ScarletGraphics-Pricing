@@ -25,6 +25,7 @@
         <div id="calc-categories" class="chips" role="tablist"></div>
         <p class="muted" id="calc-note"></p>
         <div class="qty-calc">
+          <label class="wide">Size<select id="calc-size"></select></label>
           <label><span>Width (<span class="calc-dim">ft</span>)</span><input id="calc-width" type="number" step="any" min="0"></label>
           <label><span>Height (<span class="calc-dim">ft</span>)</span><input id="calc-height" type="number" step="any" min="0"></label>
           <label>Quantity (pcs)<input id="calc-qty" type="number" min="1" value="1"></label>
@@ -107,6 +108,7 @@
                 <option value="sqin">Per sq inch (e.g. sticker)</option>
                 <option value="tier">Per piece, by quantity (tiers)</option>
                 <option value="scale">Per piece, sliding price (e.g. mug)</option>
+                <option value="sizes">Per piece by size, bulk list (e.g. sticker)</option>
               </select>
             </label>
           </div>

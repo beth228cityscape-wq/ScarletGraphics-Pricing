@@ -146,6 +146,65 @@
     };
   }
 
+  // Bulk price per piece for a sticker size, matching W x H in either orientation.
+  function sizePrice(product, width, height) {
+    var w = num(width), h = num(height);
+    var match = (product.sizes || []).find(function (sz) {
+      return (num(sz.w) === w && num(sz.h) === h) || (num(sz.w) === h && num(sz.h) === w);
+    });
+    return match ? num(match.price) : null;
+  }
+
+  // Price an order of a size-priced product (e.g. stickers).
+  // - bulkQty pcs and up: the size's bulk price per piece.
+  // - fewer: the bulk price plus a small-order fee of minOrder that shrinks to
+  //   nothing at bulkQty, so the order is never below minOrder and the total
+  //   always rises with quantity (no jump at bulkQty).
+  // - if a per-sq-in price (ratePerSqft) is set, small orders priced by area
+  //   (with minPrice per piece) are used when that comes out cheaper.
+  // order: { width, height, qty, rate } in inches; order.rate overrides the
+  // per-sq-in price.
+  function computeSizeOrder(product, items, order) {
+    order = order || {};
+    var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
+    var area = num(order.width) * num(order.height);
+    var bulk = sizePrice(product, order.width, order.height);
+    var bulkQty = num(product.bulkQty) || 1000;
+    var minOrder = num(product.minOrder);
+    var rate = order.rate == null || order.rate === '' ? num(product.ratePerSqft) : num(order.rate);
+
+    var bulkTotal = null, mode = null;
+    if (bulk !== null) {
+      if (qty >= bulkQty || bulk * bulkQty <= minOrder) {
+        bulkTotal = Math.max(qty * bulk, qty >= bulkQty ? 0 : minOrder);
+        mode = 'bulk';
+      } else {
+        bulkTotal = qty * bulk + minOrder * (1 - qty / bulkQty);
+        mode = 'small';
+      }
+    }
+    var retailPiece = rate > 0 ? Math.max(area * rate, num(product.minPrice)) : null;
+    var retailTotal = retailPiece !== null && area > 0 ? qty * retailPiece : null;
+
+    var total = bulkTotal;
+    if (retailTotal !== null && (total === null || retailTotal < total)) {
+      total = retailTotal;
+      mode = 'retail';
+    }
+    return {
+      area: round2(area),
+      qty: qty,
+      bulkPrice: bulk,
+      bulkQty: bulkQty,
+      minOrder: minOrder,
+      rate: rate,
+      mode: mode, // 'bulk' | 'small' | 'retail' | null (no price)
+      smallFee: mode === 'small' ? round2(bulkTotal - qty * bulk) : 0,
+      total: total === null ? 0 : round2(total),
+      perPiece: total === null || qty <= 0 ? 0 : round2(total / qty)
+    };
+  }
+
   // Length units in feet, for rolls measured in mixed units (e.g. 4.5 ft x 50 m).
   var FEET_PER = { ft: 1, m: 3.28084, in: 1 / 12, cm: 0.0328084, yd: 3 };
 
@@ -158,7 +217,7 @@
   var api = {
     rollArea: rollArea,
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
-    computeTierOrder: computeTierOrder, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
+    computeTierOrder: computeTierOrder, computeSizeOrder: computeSizeOrder, sizePrice: sizePrice, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Costing = api;

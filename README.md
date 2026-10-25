@@ -7,6 +7,7 @@ Simpleng app para sa listahan ng items/materials at products, at para ma-compute
 Buksan lang ang `index.html` sa browser (walang kailangang i-install). Pwede rin itong i-host sa GitHub Pages.
 
 1. **Price Calculator**: pumili ng category (hal. **Tarpaulin** per sq ft, **Sticker** per sq inch), ilagay ang lapad, haba at ilang piraso. Halimbawa: sticker 2 × 2 in = 4 sq in × presyo per sq in. Pwedeng palitan ang presyo sa calculator mismo para sa discount. May minimum na presyo kada piraso (Tarpaulin: ₱200).
+   **Sticker**: pumili ng size sa listahan (hal. 2 × 3 in = ₱1.50/pc). Mula 1,000 pcs, bulk price ang presyo. Kapag kulang sa 1,000, bulk price + small-order fee na ₱500 na lumiliit habang dumarami (wala na sa 1,000 pcs), kaya hindi bababa sa ₱500 ang order at hindi kailanman mas mahal ang mas kaunti. Optional ang presyo per sq inch para sa isa o kaunting piraso; ginagamit lang ito kapag mas mura.
    May category din na **depende sa dami** ang presyo kada piraso:
    - **Pababa ang presyo** (hal. **Mug**): ₱150 sa 1 pc, bumababa nang pantay bawat dagdag na piraso hanggang ₱80 mula 24 pcs. Hindi kailanman mas mahal ang mas kaunting order kaysa mas marami.
    - **Tiers** (hal. 1-11 pcs ₱350, 12+ pcs ₱300). Nagbababala ang Settings kapag may tier na mas mahal ang total kaysa sa susunod.
