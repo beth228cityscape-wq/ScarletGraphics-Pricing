@@ -1,4 +1,4 @@
-# Scarlet Graphics Costing
+# Scarlet Graphics - Price Calculator
 
 Simpleng app para sa listahan ng items/materials at products, at para ma-compute ang costing at selling price.
 
