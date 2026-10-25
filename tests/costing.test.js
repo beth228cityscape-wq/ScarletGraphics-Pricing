@@ -74,3 +74,11 @@ test('minimum does not affect orders above it, and caps discounts', () => {
   assert.strictEqual(d.total, 200);
   assert.strictEqual(d.discount, 25);
 });
+
+test('per sq inch pricing uses the same width x height x rate formula', () => {
+  const sticker = { pricing: 'sqin', ratePerSqft: 5, minPrice: 0 };
+  const r = computeSqftOrder(sticker, items, { width: 2, height: 2, qty: 10 });
+  assert.strictEqual(r.area, 4);
+  assert.strictEqual(r.pricePerPiece, 20);
+  assert.strictEqual(r.total, 200);
+});

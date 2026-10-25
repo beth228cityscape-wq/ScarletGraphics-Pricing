@@ -10,7 +10,7 @@
   <header>
     <h1>Scarlet Graphics <span>Costing</span></h1>
     <nav>
-      <button data-tab="tarp" class="active">Tarpaulin</button>
+      <button data-tab="calc" class="active">Price Calculator</button>
       <button data-tab="items">Items / Materials</button>
       <button data-tab="products">Products</button>
       <button data-tab="settings">Settings</button>
@@ -18,19 +18,20 @@
   </header>
 
   <main>
-    <!-- TARPAULIN QUICK CALCULATOR -->
-    <section id="tab-tarp" class="tab active">
-      <div class="card">
-        <h2>Compute ng tarpaulin</h2>
-        <p class="muted" id="tarp-config-note"></p>
+    <!-- PRICE CALCULATOR -->
+    <section id="tab-calc" class="tab active">
+      <div class="card calc">
+        <h2>Price Calculator</h2>
+        <div id="calc-categories" class="chips" role="tablist"></div>
+        <p class="muted" id="calc-note"></p>
         <div class="qty-calc">
-          <label>Lapad (ft)<input id="tarp-width" type="number" step="any" min="0" value="4"></label>
-          <label>Haba (ft)<input id="tarp-height" type="number" step="any" min="0" value="4"></label>
-          <label>Ilang piraso?<input id="tarp-qty" type="number" min="1" value="1"></label>
-          <label>Presyo per sq ft (₱)<input id="tarp-rate" type="number" step="0.01" min="0"></label>
+          <label><span>Lapad (<span class="calc-dim">ft</span>)</span><input id="calc-width" type="number" step="any" min="0"></label>
+          <label><span>Haba (<span class="calc-dim">ft</span>)</span><input id="calc-height" type="number" step="any" min="0"></label>
+          <label>Ilang piraso?<input id="calc-qty" type="number" min="1" value="1"></label>
+          <label><span>Presyo per <span class="calc-area">sq ft</span> (₱)</span><input id="calc-rate" type="number" step="0.01" min="0"></label>
         </div>
-        <p class="muted small">Palitan lang ang presyo per sq ft dito kung may discount. Hindi nito binabago ang naka-set sa Settings.</p>
-        <div id="tarp-total" class="order-total"></div>
+        <p class="muted small">Palitan lang ang presyo dito kung may discount. Hindi nito binabago ang naka-set sa Settings.</p>
+        <div id="calc-total" class="order-total"></div>
       </div>
     </section>
 
@@ -86,11 +87,12 @@
               <select name="pricing">
                 <option value="unit">Per piraso (puhunan + markup)</option>
                 <option value="sqft">Per sq ft (hal. tarpaulin)</option>
+                <option value="sqin">Per sq inch (hal. sticker)</option>
               </select>
             </label>
           </div>
 
-          <h3>Materials na gagamitin <span class="sqft-only muted">(per 1 sq ft)</span></h3>
+          <h3>Materials na gagamitin <span class="area-only muted">(per 1 <span class="area-word">sq ft</span>)</span></h3>
           <table>
             <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Cost/unit</th><th class="num">Total</th><th></th></tr></thead>
             <tbody id="component-rows"></tbody>
@@ -103,17 +105,17 @@
             <label><span>Labor (₱ per <span class="unit-word">piraso</span>)</span><input name="labor" type="number" step="0.01" min="0" value="0"></label>
             <label>Overhead (%)<input name="overheadPct" type="number" step="0.01" min="0" value="0"></label>
             <label class="unit-only">Markup (%)<input name="markupPct" type="number" step="0.01" min="0" value="0"></label>
-            <label class="sqft-only">Presyo per sq ft (₱)<input name="ratePerSqft" type="number" step="0.01" min="0" value="0"></label>
-            <label class="sqft-only">Minimum na presyo kada piraso (₱)<input name="minPrice" type="number" step="0.01" min="0" value="0"></label>
+            <label class="area-only"><span>Presyo per <span class="area-word">sq ft</span> (₱)</span><input name="ratePerSqft" type="number" step="0.01" min="0" value="0"></label>
+            <label class="area-only">Minimum na presyo kada piraso (₱)<input name="minPrice" type="number" step="0.01" min="0" value="0"></label>
           </div>
 
           <div id="breakdown" class="breakdown"></div>
 
           <h3>Compute ng order</h3>
           <div class="qty-calc">
-            <label class="sqft-only">Lapad (ft)<input id="order-width" type="number" step="any" min="0" value="4"></label>
-            <label class="sqft-only">Haba (ft)<input id="order-height" type="number" step="any" min="0" value="4"></label>
-            <label class="sqft-only">Presyo per sq ft (₱)<input id="order-rate" type="number" step="0.01" min="0"></label>
+            <label class="area-only"><span>Lapad (<span class="dim-word">ft</span>)</span><input id="order-width" type="number" step="any" min="0" value="4"></label>
+            <label class="area-only"><span>Haba (<span class="dim-word">ft</span>)</span><input id="order-height" type="number" step="any" min="0" value="4"></label>
+            <label class="area-only"><span>Presyo per <span class="area-word">sq ft</span> (₱)</span><input id="order-rate" type="number" step="0.01" min="0"></label>
             <label>Ilang piraso?<input id="order-qty" type="number" min="1" value="1"></label>
           </div>
           <div id="order-total" class="order-total"></div>
@@ -129,14 +131,18 @@
 
     <!-- SETTINGS / BACKUP -->
     <section id="tab-settings" class="tab">
-      <form id="tarp-config" class="card">
-        <h2>Presyo ng tarpaulin</h2>
-        <div class="grid">
-          <label>Presyo per sq ft (₱)<input name="ratePerSqft" type="number" step="0.01" min="0" required></label>
-          <label>Minimum na presyo kada piraso (₱)<input name="minPrice" type="number" step="0.01" min="0" required></label>
+      <form id="price-config" class="card">
+        <h2>Presyo ng bawat category</h2>
+        <p class="muted small">Ito ang ginagamit ng Price Calculator.</p>
+        <table>
+          <thead><tr><th>Category</th><th>Sukat</th><th class="num">Presyo</th><th class="num">Minimum / piraso</th><th></th></tr></thead>
+          <tbody id="price-config-rows"></tbody>
+        </table>
+        <div class="actions">
+          <button type="submit" class="primary">I-save ang mga presyo</button>
+          <button type="button" id="category-add">+ Bagong category</button>
         </div>
-        <div class="actions"><button type="submit" class="primary">I-save</button></div>
-        <p id="tarp-config-msg" class="msg"></p>
+        <p id="price-config-msg" class="msg"></p>
       </form>
 
       <div class="card">

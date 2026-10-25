@@ -62,7 +62,7 @@ td.num input { width: 80px; text-align: right; }
 .order-total .total { font-size: 18px; font-weight: 700; color: var(--red); }
 .order-total .discount { color: #1a7f37; }
 .order-total .minimum { color: #b25e00; font-weight: 600; }
-form[data-pricing="unit"] .sqft-only, form[data-pricing="sqft"] .unit-only { display: none; }
+form[data-pricing="unit"] .area-only, form[data-pricing="area"] .unit-only { display: none; }
 .msg { color: var(--muted); }
 @media (max-width: 760px) {
   .split { grid-template-columns: 1fr; }
@@ -71,4 +71,10 @@ form[data-pricing="unit"] .sqft-only, form[data-pricing="sqft"] .unit-only { dis
   #product-form th:nth-child(3), #component-rows td:nth-child(3) { display: none; }
 }
 .small { font-size: 13px; margin: 8px 0 0; }
-#tab-tarp .card { max-width: 640px; }
+#tab-calc .card { max-width: 680px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.chips button { border-radius: 999px; padding: 7px 16px; }
+.chips button.active { background: var(--red); border-color: var(--red); color: #fff; }
+#price-config-rows input { max-width: 120px; text-align: right; }
+#price-config-rows input[data-field="name"] { max-width: none; text-align: left; }
+#price-config-rows select { max-width: 150px; }
