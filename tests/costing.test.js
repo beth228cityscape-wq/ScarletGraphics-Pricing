@@ -55,3 +55,22 @@ test('sq ft order rate can be overridden for a discount', () => {
   assert.strictEqual(r.total, 640);
   assert.strictEqual(r.discount, 160);
 });
+
+test('sq ft order below the minimum is charged the minimum per piece', () => {
+  const small = Object.assign({}, tarp, { minPrice: 200 });
+  const r = computeSqftOrder(small, items, { width: 2, height: 3, qty: 2 }); // 6 sq ft x 25 = 150
+  assert.strictEqual(r.computedPerPiece, 150);
+  assert.ok(r.minApplied);
+  assert.strictEqual(r.pricePerPiece, 200);
+  assert.strictEqual(r.total, 400);
+  assert.strictEqual(r.discount, 0);
+});
+
+test('minimum does not affect orders above it, and caps discounts', () => {
+  const t = Object.assign({}, tarp, { minPrice: 200 });
+  assert.strictEqual(computeSqftOrder(t, items, { width: 4, height: 4 }).total, 400);
+  // 3x3 = 9 sq ft: regular ₱225, discounted to ₱20 = ₱180 -> floored at ₱200
+  const d = computeSqftOrder(t, items, { width: 3, height: 3, rate: 20 });
+  assert.strictEqual(d.total, 200);
+  assert.strictEqual(d.discount, 25);
+});

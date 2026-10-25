@@ -9,7 +9,7 @@ Buksan lang ang `index.html` sa browser (walang kailangang i-install). Pwede rin
 1. **Items / Materials**: ilista ang bawat material, unit (pc, sheet, sqft, ml...) at cost per unit.
 2. **Products**: gumawa ng product, piliin ang mga materials at quantity, tapos ilagay ang waste %, labor, overhead % at markup %.
    - **Per piraso**: selling price = puhunan + markup %.
-   - **Per sq ft** (hal. tarpaulin): ilagay ang presyo per sq ft (hal. ₱25). Sa "Compute ng order", ilagay ang lapad at haba (ft): 4 × 4 ft × ₱25 = ₱400. Pwedeng palitan ang presyo per sq ft doon para sa discount, hindi nababago ang naka-save na presyo. Ang materials, labor at overhead ay per 1 sq ft para makita ang puhunan at tubo.
+   - **Per sq ft** (hal. tarpaulin): ilagay ang presyo per sq ft (hal. ₱25). Sa "Compute ng order", ilagay ang lapad at haba (ft): 4 × 4 ft × ₱25 = ₱400. May **minimum na presyo kada piraso** (default ₱200): kapag mas mababa doon ang compute, ang minimum ang presyo (hal. 2 × 3 ft × ₱25 = ₱150 → ₱200). Pwedeng palitan ang presyo per sq ft doon para sa discount, hindi nababago ang naka-save na presyo. Ang materials, labor at overhead ay per 1 sq ft para makita ang puhunan at tubo.
 3. Makikita agad ang breakdown, selling price, tubo at margin, pati total para sa isang order (ilang piraso).
 4. **Backup**: i-export/i-import ang data bilang JSON, i-export ang costing bilang CSV, o i-paste ang items mula sa Google Sheets/Excel.
 
@@ -26,7 +26,8 @@ Selling     = Total cost × (1 + markup %)
 
 Per sq ft:
 Sq ft       = lapad (ft) × haba (ft)
-Presyo      = sq ft × presyo per sq ft × ilang piraso
+Kada piraso = sq ft × presyo per sq ft (pero hindi bababa sa minimum, hal. ₱200)
+Presyo      = kada piraso × ilang piraso
 Puhunan     = sq ft × total cost per sq ft × ilang piraso
 ```
 

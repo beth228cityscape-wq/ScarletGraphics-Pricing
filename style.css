@@ -61,6 +61,7 @@ td.num input { width: 80px; text-align: right; }
 .order-total div { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .order-total .total { font-size: 18px; font-weight: 700; color: var(--red); }
 .order-total .discount { color: #1a7f37; }
+.order-total .minimum { color: #b25e00; font-weight: 600; }
 form[data-pricing="unit"] .sqft-only, form[data-pricing="sqft"] .unit-only { display: none; }
 .msg { color: var(--muted); }
 @media (max-width: 760px) {

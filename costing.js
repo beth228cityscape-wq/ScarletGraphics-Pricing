@@ -57,6 +57,7 @@
   // The product's materials, waste, labor and overhead are per sq ft; its selling
   // price is product.ratePerSqft. order: { width, height, qty, rate } in feet;
   // order.rate overrides the product rate (for discounts) when given.
+  // product.minPrice is the lowest price charged per piece (e.g. ₱200).
   function computeSqftOrder(product, items, order) {
     order = order || {};
     var perSqft = computeProduct(product, items);
@@ -65,9 +66,13 @@
     var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
     var baseRate = num(product.ratePerSqft);
     var rate = order.rate == null || order.rate === '' ? baseRate : num(order.rate);
+    var minPrice = num(product.minPrice);
     var area = width * height;
     var totalArea = area * qty;
-    var total = totalArea * rate;
+    var computedPiece = area * rate;
+    var piece = Math.max(computedPiece, minPrice);
+    var regularPiece = Math.max(area * baseRate, minPrice);
+    var total = piece * qty;
     var cost = totalArea * perSqft.totalCost;
 
     return {
@@ -75,9 +80,12 @@
       totalArea: round2(totalArea),
       baseRate: baseRate,
       rate: rate,
-      pricePerPiece: round2(area * rate),
+      computedPerPiece: round2(computedPiece),
+      minPrice: minPrice,
+      minApplied: computedPiece < minPrice,
+      pricePerPiece: round2(piece),
       total: round2(total),
-      discount: round2(totalArea * (baseRate - rate)),
+      discount: round2((regularPiece - piece) * qty),
       costPerSqft: perSqft.totalCost,
       cost: round2(cost),
       profit: round2(total - cost),

@@ -144,7 +144,7 @@
     productForm.hidden = false;
     productForm.id.value = p.id || '';
     productForm.name.value = p.name || '';
-    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft'].forEach(function (k) {
+    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft', 'minPrice'].forEach(function (k) {
       productForm[k].value = p[k] || 0;
     });
     productForm.pricing.value = p.pricing || 'unit';
@@ -159,7 +159,7 @@
 
   function readProductForm() {
     editingProduct.name = productForm.name.value.trim();
-    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft'].forEach(function (k) {
+    ['wastePct', 'labor', 'overheadPct', 'markupPct', 'ratePerSqft', 'minPrice'].forEach(function (k) {
       editingProduct[k] = parseFloat(productForm[k].value) || 0;
     });
     editingProduct.pricing = productForm.pricing.value;
@@ -204,6 +204,7 @@
     ];
     if (sqft) {
       rows.push(['Presyo per sq ft', editingProduct.ratePerSqft || 0, 'total']);
+      if (editingProduct.minPrice) rows.push(['Minimum kada piraso', editingProduct.minPrice]);
     } else {
       rows.push(['Markup (' + (editingProduct.markupPct || 0) + '%)', r.markup]);
       rows.push(['Selling price', r.price, 'total']);
@@ -230,8 +231,9 @@
       });
       out = [
         ['Sukat', fmt($('#order-width').value) + ' × ' + fmt($('#order-height').value) + ' ft = ' + fmt(o.area) + ' sq ft'],
-        ['Kada piraso', fmt(o.area) + ' sq ft × ' + peso.format(o.rate) + ' = ' + peso.format(o.pricePerPiece)]
+        ['Kada piraso', fmt(o.area) + ' sq ft × ' + peso.format(o.rate) + ' = ' + peso.format(o.computedPerPiece)]
       ];
+      if (o.minApplied) out.push(['Minimum na presyo (mas mababa sa ' + peso.format(o.minPrice) + ')', peso.format(o.pricePerPiece) + ' kada piraso', 'minimum']);
       if (o.discount > 0) out.push(['Discount (mula ' + peso.format(o.baseRate) + '/sq ft)', '−' + peso.format(o.discount), 'discount']);
       if (o.discount < 0) out.push(['Dagdag (mula ' + peso.format(o.baseRate) + '/sq ft)', '+' + peso.format(-o.discount)]);
       out.push(['Total (' + qty + ' pcs)', peso.format(o.total), 'total']);
@@ -254,7 +256,7 @@
   }
 
   $('#product-new').addEventListener('click', function () {
-    openProduct({ name: '', pricing: 'unit', components: [{ itemId: '', qty: 1 }], wastePct: 0, labor: 0, overheadPct: 0, markupPct: 0, ratePerSqft: 0 });
+    openProduct({ name: '', pricing: 'unit', components: [{ itemId: '', qty: 1 }], wastePct: 0, labor: 0, overheadPct: 0, markupPct: 0, ratePerSqft: 0, minPrice: 200 });
     productForm.name.focus();
   });
 
