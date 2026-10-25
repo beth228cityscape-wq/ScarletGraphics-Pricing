@@ -100,8 +100,6 @@
     return next.minQty - 1 > t.minQty ? t.minQty + '-' + (next.minQty - 1) : String(t.minQty);
   }
 
-  function sizeLabel(sz) { return fmt(sz.w) + ' × ' + fmt(sz.h) + ' in'; }
-
   function tierSummary(p) {
     if (isSizes(p)) {
       return (p.sizes || []).length + ' sizes, bulk price from ' + fmt(p.bulkQty) + ' pcs, minimum order ' +
@@ -556,17 +554,6 @@
     var tier = isPiece(p) && !sizes;
     var a = sizes ? AREA.sqin : AREA[p.pricing];
     var qty = Math.max(1, parseInt($('#calc-qty').value, 10) || 1);
-    var sizeSel = $('#calc-size');
-    sizeSel.closest('label').style.display = sizes ? '' : 'none';
-    if (sizes) {
-      var w = $('#calc-width').value, h = $('#calc-height').value;
-      var current = (p.sizes || []).findIndex(function (sz) {
-        return (+sz.w === +w && +sz.h === +h) || (+sz.w === +h && +sz.h === +w);
-      });
-      sizeSel.innerHTML = (p.sizes || []).map(function (sz, i) {
-        return '<option value="' + i + '"' + (i === current ? ' selected' : '') + '>' + sizeLabel(sz) + ' · ' + peso.format(sz.price) + '</option>';
-      }).join('') + '<option value="custom"' + (current < 0 ? ' selected' : '') + '>Custom size</option>';
-    }
     $('#calc-categories').innerHTML = cats.map(function (c) {
       return '<button type="button" role="tab" data-cat="' + c.id + '"' + (c.id === calcId ? ' class="active"' : '') + '>' + esc(c.name) + '</button>';
     }).join('');
@@ -615,15 +602,6 @@
     $('#calc-height').value = dims[1];
     renderCalc(true);
   }
-
-  $('#calc-size').addEventListener('change', function () {
-    var sz = (findProduct(calcId).sizes || [])[+this.value];
-    if (sz) {
-      $('#calc-width').value = sz.w;
-      $('#calc-height').value = sz.h;
-    }
-    renderCalc(false);
-  });
 
   $('#calc-categories').addEventListener('click', function (e) {
     var id = e.target.dataset.cat;

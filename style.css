@@ -95,7 +95,6 @@ form[data-pricing="tier"] .area-only, form[data-pricing="tier"] .unit-only { dis
 .with-unit select { width: auto; flex: none; }
 h3 small { font-weight: 400; font-size: 12px; }
 .grid + .grid { margin-top: 12px; }
-.qty-calc label.wide { width: 100%; max-width: 300px; }
 .sizes-config { display: flex; flex-direction: column; gap: 8px; }
 .sizes-config details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 .sizes-config textarea { margin: 6px 0; }
