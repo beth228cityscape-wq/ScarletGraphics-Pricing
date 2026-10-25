@@ -108,14 +108,25 @@
     return match;
   }
 
+  // Sliding price per piece: startPrice at 1 pc, going down by the same amount
+  // for each added piece until bulkPrice at bulkQty pcs and above. Rounded to
+  // whole pesos. The order total never goes down when a piece is added.
+  function scalePrice(product, qty) {
+    var start = num(product.startPrice), bulk = num(product.bulkPrice);
+    var bulkQty = Math.max(1, Math.floor(num(product.bulkQty)));
+    if (qty >= bulkQty || bulkQty <= 1) return bulk;
+    return Math.round(start - (start - bulk) * (Math.max(1, qty) - 1) / (bulkQty - 1));
+  }
+
   // Price an order of a product whose price per piece depends on quantity
   // (e.g. mugs: 1-12 pcs ₱150, 13-24 ₱100, 25+ ₱80). order: { qty, price };
   // order.price overrides the tier price (for discounts) when given.
   function computeTierOrder(product, items, order) {
     order = order || {};
     var qty = order.qty == null || order.qty === '' ? 1 : num(order.qty);
-    var tier = tierFor(product, qty);
-    var regular = tier ? tier.price : 0;
+    var scale = product.pricing === 'scale';
+    var tier = scale ? null : tierFor(product, qty);
+    var regular = scale ? scalePrice(product, qty) : tier ? tier.price : 0;
     var price = order.price == null || order.price === '' ? regular : num(order.price);
     var total = price * qty;
     var unitCost = computeProduct(product, items).totalCost;
@@ -123,6 +134,7 @@
     return {
       qty: qty,
       tier: tier,
+      hasPrice: scale ? num(product.startPrice) > 0 || num(product.bulkPrice) > 0 : !!tier,
       regularPrice: regular,
       price: price,
       total: round2(total),
@@ -136,7 +148,7 @@
 
   var api = {
     computeProduct: computeProduct, computeSqftOrder: computeSqftOrder,
-    computeTierOrder: computeTierOrder, sortedTiers: sortedTiers, round2: round2
+    computeTierOrder: computeTierOrder, sortedTiers: sortedTiers, scalePrice: scalePrice, round2: round2
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Costing = api;

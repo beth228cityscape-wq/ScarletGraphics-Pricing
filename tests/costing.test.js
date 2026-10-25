@@ -100,3 +100,23 @@ test('tier price can be overridden for a discount', () => {
   assert.strictEqual(r.total, 1300);
   assert.strictEqual(r.discount, 200);
 });
+
+const { scalePrice } = require('../costing.js');
+const mugScale = { pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 };
+
+test('sliding price goes from start price to bulk price', () => {
+  assert.strictEqual(scalePrice(mugScale, 1), 150);
+  assert.strictEqual(scalePrice(mugScale, 12), 117);
+  assert.strictEqual(scalePrice(mugScale, 13), 113);
+  assert.strictEqual(scalePrice(mugScale, 24), 80);
+  assert.strictEqual(scalePrice(mugScale, 100), 80);
+});
+
+test('sliding price total never drops when a piece is added', () => {
+  let prev = 0;
+  for (let q = 1; q <= 60; q++) {
+    const t = computeTierOrder(mugScale, items, { qty: q }).total;
+    assert.ok(t > prev, 'total for ' + q + ' pcs (' + t + ') should be above ' + prev);
+    prev = t;
+  }
+});

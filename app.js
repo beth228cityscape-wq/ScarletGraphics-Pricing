@@ -7,11 +7,10 @@
   var BUILTINS = [
     { id: 'tarpaulin', name: 'Tarpaulin', pricing: 'sqft', ratePerSqft: 25, minPrice: 200 },
     { id: 'sticker', name: 'Sticker', pricing: 'sqin', ratePerSqft: 0, minPrice: 0 },
-    { id: 'mug', name: 'Mug', pricing: 'tier', tiers: [
-      { minQty: 1, price: 150 }, { minQty: 13, price: 100 }, { minQty: 25, price: 80 }
-    ] }
+    { id: 'mug', name: 'Mug', pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 }
   ];
   var TIER_LABEL = 'Per piraso (depende sa dami)';
+  var SCALE_LABEL = 'Per piraso (pababa ang presyo)';
   var AREA = {
     sqft: { dim: 'ft', area: 'sq ft', label: 'Per sq ft' },
     sqin: { dim: 'in', area: 'sq in', label: 'Per sq inch' }
@@ -35,11 +34,19 @@
   function blankProduct(fields) {
     return Object.assign({
       name: '', pricing: 'unit', components: [], wastePct: 0, labor: 0,
-      overheadPct: 0, markupPct: 0, ratePerSqft: 0, minPrice: 0, tiers: []
+      overheadPct: 0, markupPct: 0, ratePerSqft: 0, minPrice: 0, tiers: [],
+      startPrice: 0, bulkPrice: 0, bulkQty: 0
     }, fields);
   }
 
   function ensureBuiltins(st) {
+    // The first Mug used 150/100/80 tiers, which made 12 pcs cost more than 13.
+    st.products.forEach(function (p) {
+      if (p.id === 'mug' && p.pricing === 'tier' &&
+          JSON.stringify(p.tiers) === '[{"minQty":1,"price":150},{"minQty":13,"price":100},{"minQty":25,"price":80}]') {
+        Object.assign(p, { pricing: 'scale', startPrice: 150, bulkPrice: 80, bulkQty: 24 });
+      }
+    });
     BUILTINS.forEach(function (b) {
       if (st.products.some(function (p) { return p.id === b.id; })) return;
       // Adopt a matching product made by hand before the built-in one existed.
@@ -58,7 +65,13 @@
 
   function isArea(p) { return !!(p && AREA[p.pricing]); }
   function isTier(p) { return !!(p && p.pricing === 'tier'); }
-  function isCategory(p) { return isArea(p) || isTier(p); }
+  function isScale(p) { return !!(p && p.pricing === 'scale'); }
+  function isPiece(p) { return isTier(p) || isScale(p); }
+  function isCategory(p) { return isArea(p) || isPiece(p); }
+
+  function pricingLabel(p) {
+    return isTier(p) ? TIER_LABEL : isScale(p) ? SCALE_LABEL : AREA[p.pricing].label;
+  }
 
   // "1-12 pcs: ₱150 · 13-24 pcs: ₱100 · 25+ pcs: ₱80"
   function tierRange(tiers, i) {
@@ -68,6 +81,10 @@
   }
 
   function tierSummary(p) {
+    if (isScale(p)) {
+      return peso.format(p.startPrice || 0) + ' sa 1 pc, pababa hanggang ' + peso.format(p.bulkPrice || 0) +
+        ' mula ' + (p.bulkQty || 0) + ' pcs';
+    }
     var tiers = Costing.sortedTiers(p);
     if (!tiers.length) return 'wala pang presyo';
     return tiers.map(function (t, i) {
@@ -205,7 +222,7 @@
       var r = Costing.computeProduct(p, state.items);
       var active = editingProduct && editingProduct.id === p.id ? ' class="active"' : '';
       var per = isArea(p) ? '/' + AREA[p.pricing].area : '';
-      var price = isTier(p) ? tierSummary(p) : isArea(p)
+      var price = isPiece(p) ? tierSummary(p) : isArea(p)
         ? 'Cost ' + peso.format(r.totalCost) + per + ' · <strong>' + peso.format(p.ratePerSqft || 0) + per + '</strong>'
         : 'Cost ' + peso.format(r.totalCost) + ' · <strong>' + peso.format(r.price) + '</strong>';
       return '<li' + active + ' data-id="' + p.id + '"><span>' + esc(p.name) + '</span>' +
@@ -242,7 +259,7 @@
 
   function applyPricingMode() {
     var a = AREA[productForm.pricing.value];
-    productForm.dataset.pricing = a ? 'area' : productForm.pricing.value === 'tier' ? 'tier' : 'unit';
+    productForm.dataset.pricing = a ? 'area' : /^(tier|scale)$/.test(productForm.pricing.value) ? 'tier' : 'unit';
     $('.unit-word').textContent = a ? a.area : 'piraso';
     productForm.querySelectorAll('.area-word').forEach(function (el) { el.textContent = a ? a.area : ''; });
     productForm.querySelectorAll('.dim-word').forEach(function (el) { el.textContent = a ? a.dim : ''; });
@@ -280,7 +297,7 @@
       ['Overhead (' + (editingProduct.overheadPct || 0) + '%)', r.overhead],
       ['Total cost (puhunan)' + (sqft ? ' per ' + per : ''), r.totalCost, 'subtotal']
     ];
-    var tier = isTier(editingProduct);
+    var tier = isPiece(editingProduct);
     if (tier) {
       rows[rows.length - 1][0] = 'Total cost (puhunan) kada piraso';
     } else if (sqft) {
@@ -343,11 +360,17 @@
 
   function tierOrderRows(product, order) {
     var o = Costing.computeTierOrder(product, state.items, order);
-    if (!o.tier) return [['Wala pang presyo', 'I-set sa Settings']];
-    var tiers = Costing.sortedTiers(product);
-    var range = tierRange(tiers, tiers.findIndex(function (t) { return t.minQty === o.tier.minQty; }));
+    if (!o.hasPrice) return [['Wala pang presyo', 'I-set sa Settings']];
+    var note = '';
+    if (o.tier) {
+      var tiers = Costing.sortedTiers(product);
+      note = ' (presyo ng ' + tierRange(tiers, tiers.findIndex(function (t) { return t.minQty === o.tier.minQty; })) + ' pcs)';
+    } else if (o.qty < (product.bulkQty || 0)) {
+      var save = (product.startPrice || 0) - o.regularPrice;
+      if (save > 0) note = ' (' + peso.format(save) + ' mas mura kaysa isahan)';
+    }
     var out = [
-      ['Presyo para sa ' + o.qty + ' pcs', peso.format(o.regularPrice) + ' kada piraso (presyo ng ' + range + ' pcs)']
+      ['Presyo para sa ' + o.qty + ' pcs', peso.format(o.regularPrice) + ' kada piraso' + note]
     ];
     if (o.discount > 0) out.push(['Discount (' + peso.format(o.price) + ' kada piraso)', '−' + peso.format(o.discount), 'discount']);
     if (o.discount < 0) out.push(['Dagdag (' + peso.format(o.price) + ' kada piraso)', '+' + peso.format(-o.discount)]);
@@ -378,7 +401,7 @@
     var p = findProduct(calcId) || cats[0];
     calcId = p.id;
     if (resetRate) calcRateTouched = false;
-    var tier = isTier(p);
+    var tier = isPiece(p);
     var a = AREA[p.pricing];
     var qty = Math.max(1, parseInt($('#calc-qty').value, 10) || 1);
     $('#calc-categories').innerHTML = cats.map(function (c) {
@@ -392,8 +415,8 @@
 
     if (tier) {
       var t = Costing.computeTierOrder(p, state.items, { qty: qty });
-      if (!calcRateTouched) $('#calc-rate').value = t.tier ? t.tier.price : 0;
-      $('#calc-note').textContent = Costing.sortedTiers(p).length
+      if (!calcRateTouched) $('#calc-rate').value = t.regularPrice;
+      $('#calc-note').textContent = t.hasPrice
         ? 'Naka-set: ' + tierSummary(p) + '. Mapapalitan sa Settings.'
         : 'Wala pang presyo ang ' + p.name + '. I-set muna sa Settings.';
       $('#calc-total').innerHTML = rowsHtml(tierOrderRows(p, { qty: qty, price: $('#calc-rate').value }));
@@ -436,25 +459,44 @@
 
   function renderPriceConfig() {
     $('#price-config-rows').innerHTML = areaProducts().map(function (p) {
-      var labels = Object.keys(AREA).map(function (k) { return [k, AREA[k].label]; }).concat([['tier', TIER_LABEL]]);
+      var labels = Object.keys(AREA).map(function (k) { return [k, AREA[k].label]; }).concat([['tier', TIER_LABEL], ['scale', SCALE_LABEL]]);
       var unitSel = '<select data-field="pricing">' + labels.map(function (l) {
         return '<option value="' + l[0] + '"' + (l[0] === p.pricing ? ' selected' : '') + '>' + l[1] + '</option>';
       }).join('') + '</select>';
       var name = isBuiltin(p.id) ? esc(p.name) : '<input data-field="name" value="' + esc(p.name) + '" required>';
-      var priceCells = isTier(p)
+      var priceCells = isScale(p)
+        ? '<td colspan="2"><div class="scale">' +
+            '<span>₱</span><input data-field="startPrice" type="number" min="0" step="1" value="' + (p.startPrice || 0) + '" aria-label="Presyo sa 1 piraso">' +
+            '<span>sa 1 pc, pababa hanggang ₱</span><input data-field="bulkPrice" type="number" min="0" step="1" value="' + (p.bulkPrice || 0) + '" aria-label="Pinakamababang presyo">' +
+            '<span>mula</span><input data-field="bulkQty" type="number" min="2" step="1" value="' + (p.bulkQty || 0) + '" aria-label="Mula ilang piraso"><span>pcs</span></div></td>'
+        : isTier(p)
         ? '<td colspan="2"><div class="tiers">' + Costing.sortedTiers(p).map(function (t, i) {
             return '<div class="tier" data-tier="' + i + '"><span>Mula</span>' +
               '<input data-tier-field="minQty" type="number" min="1" step="1" value="' + t.minQty + '" aria-label="Mula ilang piraso">' +
               '<span>pcs: ₱</span><input data-tier-field="price" type="number" min="0" step="0.01" value="' + t.price + '" aria-label="Presyo kada piraso">' +
               '<button type="button" class="danger" data-remove-tier="' + i + '" aria-label="Alisin">✕</button></div>';
-          }).join('') + '<button type="button" data-add-tier>+ Tier</button></div></td>'
+          }).join('') + '<button type="button" data-add-tier>+ Tier</button>' + tierWarning(p) + '</div></td>'
         : '<td class="num"><input data-field="ratePerSqft" type="number" step="0.01" min="0" value="' + (p.ratePerSqft || 0) + '"></td>' +
           '<td class="num"><input data-field="minPrice" type="number" step="0.01" min="0" value="' + (p.minPrice || 0) + '"></td>';
       return '<tr data-id="' + p.id + '"><td>' + name + '</td>' +
-        '<td>' + (isBuiltin(p.id) ? (isTier(p) ? TIER_LABEL : AREA[p.pricing].label) : unitSel) + '</td>' +
+        '<td>' + (isBuiltin(p.id) ? pricingLabel(p) : unitSel) + '</td>' +
         priceCells +
         '<td>' + (isBuiltin(p.id) ? '' : '<button type="button" class="danger" data-remove-cat="' + p.id + '" aria-label="Burahin">✕</button>') + '</td></tr>';
     }).join('');
+  }
+
+  // Warn when the last piece of a tier costs more in total than the first of the next.
+  function tierWarning(p) {
+    var tiers = Costing.sortedTiers(p);
+    var bad = [];
+    for (var i = 1; i < tiers.length; i++) {
+      var q = tiers[i].minQty;
+      if ((q - 1) * tiers[i - 1].price > q * tiers[i].price) {
+        bad.push((q - 1) + ' pcs (' + peso.format((q - 1) * tiers[i - 1].price) + ') ay mas mahal kaysa ' +
+          q + ' pcs (' + peso.format(q * tiers[i].price) + ')');
+      }
+    }
+    return bad.length ? '<p class="warn">Paalala: ' + bad.join('; ') + '.</p>' : '';
   }
 
   function readPriceConfig() {
@@ -720,8 +762,8 @@
     var header = ['Product', 'Pricing', 'Materials', 'Waste', 'Labor', 'Overhead', 'Total cost', 'Markup', 'Selling price', 'Margin %'];
     var rows = state.products.map(function (p) {
       var r = Costing.computeProduct(p, state.items);
-      if (isTier(p)) {
-        return [p.name, 'per piraso (depende sa dami)', r.materials, r.waste, r.labor, r.overhead, r.totalCost, '', tierSummary(p), ''];
+      if (isPiece(p)) {
+        return [p.name, pricingLabel(p).toLowerCase(), r.materials, r.waste, r.labor, r.overhead, r.totalCost, '', tierSummary(p), ''];
       }
       if (isArea(p)) {
         var rate = p.ratePerSqft || 0;
