@@ -11,13 +11,14 @@
 </head>
 <body>
   <header>
-    <h1>Scarlet Graphics <span>- Price Calculator <small class="version">(Beta ver 1.0)</small></span></h1>
+    <h1>Scarlet Graphics <span>- Price Calculator <small class="version">(Beta ver 1.1)</small></span></h1>
     <nav>
       <button data-tab="calc" class="active">Price Calculator</button>
       <button data-tab="print3d">3D Printing</button>
       <button data-tab="items">Items / Materials</button>
       <button data-tab="products" hidden>Products</button>
       <button data-tab="settings">Settings</button>
+      <button data-tab="notes" class="nav-right">Release Notes</button>
     </nav>
   </header>
 
@@ -247,6 +248,24 @@
         <textarea id="paste-items" rows="6" placeholder="Sticker paper A4	Paper	sheet	12.50"></textarea>
         <div class="actions"><button id="paste-import" class="primary">Import items</button></div>
         <p id="settings-msg" class="msg"></p>
+      </div>
+    </section>
+    <section id="tab-notes" class="tab">
+      <div class="card release-notes">
+        <h2>Release Notes</h2>
+        <h3>Beta ver 1.1 <small>October 26, 2026</small></h3>
+        <ul>
+          <li>New Scarlet Graphics favicon (SG logo with a calculator), also used as the phone home-screen icon.</li>
+          <li>Added this Release Notes page.</li>
+        </ul>
+        <h3>Beta ver 1.0 <small>October 25, 2026</small></h3>
+        <ul>
+          <li>Price Calculator with categories: Tarpaulin (per sq ft, minimum per piece), Sticker (size-based bulk list), Mug (sliding price by quantity), Business Cards, Sintra Board (per sq in by size), and Button Pins (with optional packaging).</li>
+          <li>Bigger orders never cost less than smaller ones (no price jumps).</li>
+          <li>3D Printing calculator.</li>
+          <li>Items / Materials list with pack price, roll size, and supplier.</li>
+          <li>Settings to edit category prices and minimums, and add new categories.</li>
+        </ul>
       </div>
     </section>
   </main>
